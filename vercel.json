@@ -9,6 +9,10 @@
     {
       "source": "/admin/",
       "destination": "/admin.html"
+    },
+    {
+      "source": "/api/:apiPath*",
+      "destination": "/api/index?__route=:apiPath*"
     }
   ],
   "redirects": [

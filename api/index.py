@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
+from urllib.parse import parse_qsl, urlencode
 from starlette.concurrency import run_in_threadpool
 
 from lib.admin_backend import MAX_BODY_BYTES, handle_admin_request, handle_inquiry_request
@@ -35,12 +36,19 @@ async def api_router(request: Request, api_path: str = ""):
         return Response('{"error":"Request is too large."}', status_code=413, media_type="application/json", headers={"Cache-Control": "no-store"})
 
     path = request.url.path
+    query = request.url.query
+    if path == "/api/index" and "__route" in request.query_params:
+        routed_path = request.query_params.get("__route", "").strip("/")
+        path = "/api" + (f"/{routed_path}" if routed_path else "")
+        forwarded = [(key, value) for key, value in parse_qsl(query, keep_blank_values=True) if key != "__route"]
+        query = urlencode(forwarded, doseq=True)
+    routed_url = path + ("?" + query if query else "")
     headers = request.headers
     production = bool(__import__("os").environ.get("VERCEL"))
     if path == "/api/admin":
-        result = await run_in_threadpool(handle_admin_request, request.method, request.url.path + ("?" + request.url.query if request.url.query else ""), headers, body, production)
+        result = await run_in_threadpool(handle_admin_request, request.method, routed_url, headers, body, production)
     elif path == "/api/inquiries":
         result = await run_in_threadpool(handle_inquiry_request, request.method, path, headers, body, production)
     else:
-        result = await run_in_threadpool(handle_platform_request, request.method, request.url.path + ("?" + request.url.query if request.url.query else ""), headers, body, production)
+        result = await run_in_threadpool(handle_platform_request, request.method, routed_url, headers, body, production)
     return _as_response(result)
