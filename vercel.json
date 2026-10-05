@@ -11,8 +11,24 @@
       "destination": "/admin.html"
     },
     {
-      "source": "/api/:apiPath*",
-      "destination": "/api/index?__route=:apiPath*"
+      "source": "/api/admin",
+      "destination": "/api/index?__route=admin"
+    },
+    {
+      "source": "/api/admin/:adminPath*",
+      "destination": "/api/index?__route=admin/:adminPath*"
+    },
+    {
+      "source": "/api/inquiries",
+      "destination": "/api/index?__route=inquiries"
+    },
+    {
+      "source": "/api/portfolio",
+      "destination": "/api/index?__route=portfolio"
+    },
+    {
+      "source": "/api/portfolio/:portfolioPath*",
+      "destination": "/api/index?__route=portfolio/:portfolioPath*"
     }
   ],
   "redirects": [
