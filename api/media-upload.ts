@@ -50,7 +50,7 @@ async function requireAdmin(request: Request) {
     JOIN admin_users u ON u.id = s.user_id
     WHERE s.token_hash = ${sha256(rawSession)}
       AND s.expires_at > ${new Date().toISOString()}
-      AND u.must_change_password = FALSE
+      AND u.must_change_password = 0
   `;
   const row = rows[0];
   if (!row || !equalHex(String(row.csrf_hash), sha256(csrf)) || !equalHex(String(row.csrf_hash), sha256(suppliedCsrf))) {
