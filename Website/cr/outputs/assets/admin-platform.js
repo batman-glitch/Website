@@ -278,11 +278,14 @@ async function uploadAsset(file, kind) {
     phaseTimer = window.setTimeout(() => stop(message), ms);
   };
   const policyListener = (event) => {
-    if (!event.effectiveDirective.startsWith('connect-src')) return;
+    // A report-only policy records a warning but does not block the upload.
+    if (event.disposition === 'report' || event.effectiveDirective !== 'connect-src') return;
     try {
       const url = new URL(event.blockedURI);
-      if ((url.hostname === 'vercel.com' && url.pathname.startsWith('/api/blob')) || url.hostname.endsWith('.vercel-storage.com')) {
-        stop('Your browser blocked the connection to media storage. Refresh this page and retry.');
+      const blobApi = url.hostname === 'vercel.com' && (url.pathname === '/' || url.pathname.startsWith('/api/blob'));
+      const blobStorage = url.hostname === 'blob.vercel-storage.com' || url.hostname.endsWith('.blob.vercel-storage.com');
+      if (blobApi || blobStorage) {
+        stop('Media storage connection blocked (' + url.hostname + '). Reload the admin page to load the latest upload settings.');
       }
     } catch { /* Other blocked resources do not belong to this upload. */ }
   };
