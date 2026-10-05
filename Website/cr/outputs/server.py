@@ -10,6 +10,7 @@ import re
 import secrets
 import sqlite3
 import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -56,9 +57,22 @@ def connect_db() -> sqlite3.Connection:
     return connection
 
 
+@contextmanager
+def database():
+    db = connect_db()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 def initialize_database() -> None:
     DATA_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
-    with connect_db() as db:
+    with database() as db:
         db.execute("""
             CREATE TABLE IF NOT EXISTS inquiries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,9 +115,24 @@ class PortfolioHandler(SimpleHTTPRequestHandler):
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         self.send_header("X-Frame-Options", "DENY")
         path = urlsplit(self.path).path
-        if path.startswith("/api/") or path.startswith("/admin"):
+        if path.startswith("/api/") or path.startswith("/admin") or path == "/admin.html":
             self.send_header("Cache-Control", "no-store")
         super().end_headers()
+
+    def translate_path(self, path: str) -> str:
+        candidate = Path(super().translate_path(path)).resolve()
+        base = SITE_DIR.resolve()
+        try:
+            relative = candidate.relative_to(base)
+        except ValueError:
+            return str(base / "__not_found__")
+        if (candidate == Path(__file__).resolve()
+                or candidate == (SITE_DIR / "README.md").resolve()
+                or candidate.is_relative_to(DATA_DIR.resolve())
+                or any(part.startswith(".") for part in relative.parts)
+                or candidate.suffix in {".py", ".sqlite", ".sqlite3", ".db"}):
+            return str(base / "__not_found__")
+        return str(candidate)
 
     def send_json(self, status: int, payload: dict[str, object]) -> None:
         encoded = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -143,6 +172,14 @@ class PortfolioHandler(SimpleHTTPRequestHandler):
             return False
         return True
 
+    def do_HEAD(self) -> None:
+        path = urlsplit(self.path).path
+        if path.startswith("/data/") or path in {"/data", "/server.py", "/README.md"}:
+            return self.send_error(404)
+        if path in {"/admin", "/admin/"}:
+            self.path = "/admin.html"
+        return super().do_HEAD()
+
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
         if path in {"/admin", "/admin/"}:
@@ -155,7 +192,7 @@ class PortfolioHandler(SimpleHTTPRequestHandler):
         if path == "/api/admin/inquiries":
             if not self.require_admin():
                 return
-            with connect_db() as db:
+            with database() as db:
                 rows = db.execute("SELECT * FROM inquiries ORDER BY created_at DESC LIMIT 500").fetchall()
             return self.send_json(200, {"inquiries": [dict(row) for row in rows]})
         return super().do_GET()
@@ -186,7 +223,7 @@ class PortfolioHandler(SimpleHTTPRequestHandler):
             return self.send_json(400, {"error": "Choose a valid service."})
 
         created_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        with connect_db() as db:
+        with database() as db:
             cursor = db.execute(
                 "INSERT INTO inquiries (created_at,name,email,project,service,timeline,genre,message) VALUES (?,?,?,?,?,?,?,?)",
                 (created_at, name, email, project, service, timeline, genre, message),
@@ -207,7 +244,7 @@ class PortfolioHandler(SimpleHTTPRequestHandler):
         if status not in VALID_STATUSES:
             return self.send_json(400, {"error": "Choose a valid status."})
         inquiry_id = int(match.group(1))
-        with connect_db() as db:
+        with database() as db:
             cursor = db.execute("UPDATE inquiries SET status=? WHERE id=?", (status, inquiry_id))
         if cursor.rowcount == 0:
             return self.send_json(404, {"error": "Enquiry not found."})
