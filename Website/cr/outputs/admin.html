@@ -1,59 +1,470 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#f3f5f7"><title>Studio inbox — Portfolio admin</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
-<style>
-:root{--paper:#f3f0e8;--white:#fff;--ink:#17231f;--muted:#66716b;--line:#d9d5ca;--navy:#202e28;--sans:'Manrope',Arial,sans-serif;--serif:'Newsreader',Georgia,serif;--mono:'IBM Plex Mono',monospace}
-*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.6 var(--sans)}button,input,select{font:inherit}a{color:inherit;text-decoration:none}.mono{font:10px var(--mono);letter-spacing:.12em;text-transform:uppercase}.shell{width:min(1080px,calc(100% - 40px));margin:auto}
-header{height:72px;border-bottom:1px solid var(--line);background:#f3f5f7ed;display:flex;align-items:center}.topbar{display:flex;align-items:center;justify-content:space-between}.brand{font-size:13px;font-weight:700;letter-spacing:.04em}.brand small{display:block;font:9px var(--mono);letter-spacing:.13em;color:var(--muted);margin-top:2px}.top-actions{display:flex;gap:12px;align-items:center}.top-actions a,.top-actions button{border:1px solid var(--line);background:transparent;padding:8px 12px;font-size:11px;color:var(--muted);cursor:pointer}.top-actions button:hover,.top-actions a:hover{color:var(--ink);border-color:#9aa7b2}
-main{padding:54px 0 80px}.eyebrow{color:#8b6a3e;margin-bottom:10px}.page-title{font:500 clamp(38px,6vw,56px)/1.04 var(--serif);letter-spacing:-.03em;margin:0}.intro{color:var(--muted);font-size:12px;max-width:500px;margin:12px 0 28px}.panel{background:var(--white);border:1px solid var(--line);padding:28px;box-shadow:0 12px 40px #14223408}
-.login-panel{max-width:490px}.login-panel h2{font:500 28px var(--serif);margin:0 0 8px}.login-panel p{font-size:12px;color:var(--muted);margin:0 0 20px}.field{display:flex;flex-direction:column;gap:7px;margin:15px 0}.field label{font:9px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#536171}.field input,.toolbar input,.toolbar select{border:1px solid #cecabe;background:#fbfaf6;padding:12px;color:var(--ink);outline:none;border-radius:4px}.field input:focus,.toolbar input:focus,.toolbar select:focus{border-color:#8b6a3e;box-shadow:0 0 0 2px #c2a16f33}.primary{border:0;background:var(--navy);color:#f3f0e8;padding:12px 16px;border-radius:4px;min-height:44px;font-size:11px;font-weight:700;cursor:pointer}.primary:hover{background:#243b54}.status{font-size:11px;color:#9a493e;min-height:18px;margin-top:10px}.help{font-size:10px!important;line-height:1.8;margin:18px 0 0!important}
-.dashboard[hidden],.login-panel[hidden]{display:none}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:26px 0}.stat{background:#e9ebe4;border:1px solid #d9d5ca;padding:16px 18px}.stat span{display:block;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.stat strong{display:block;font:500 30px var(--serif);margin-top:5px}.toolbar{display:flex;gap:10px;align-items:center;margin:23px 0}.toolbar input{flex:1;min-width:180px}.toolbar select{min-width:140px}.secondary{border:1px solid var(--line);background:#fff;color:var(--ink);padding:11px 13px;min-height:43px;font-size:10px;cursor:pointer;border-radius:4px}.secondary:hover{border-color:#9aa7b2}.inquiry-list{display:grid;gap:12px}.inquiry{background:#fff;border:1px solid var(--line);padding:20px 22px}.inquiry-top{display:flex;justify-content:space-between;gap:18px;align-items:start}.inquiry h3{font-size:15px;margin:0}.inquiry-sub{font-size:11px;color:var(--muted);margin:3px 0 0}.badge{display:inline-block;background:#e7edf1;padding:5px 8px;font:8px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#425365}.badge.new{background:#f2ead7;color:#705820}.badge.in_progress{background:#e1eaf3;color:#315574}.badge.completed{background:#e5eee5;color:#405d42}.inquiry-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:17px 0}.inquiry-grid div{min-width:0}.inquiry-grid span{display:block;color:var(--muted);font:8px var(--mono);letter-spacing:.08em;text-transform:uppercase}.inquiry-grid strong,.inquiry-grid a{display:block;font-size:11px;overflow-wrap:anywhere;margin-top:3px}.message{font-size:12px;line-height:1.8;color:#475565;white-space:pre-wrap;border-top:1px solid #e7ebef;padding-top:14px;margin:0}.card-controls{display:flex;align-items:center;gap:9px;margin-top:15px}.card-controls select{border:1px solid var(--line);background:#fbfcfd;padding:8px;font-size:10px}.empty{background:#fff;border:1px dashed #b9c4cd;padding:42px;text-align:center;color:var(--muted);font-size:12px}.notice{font-size:10px;color:var(--muted);margin:16px 0}.loading{opacity:.65;pointer-events:none}footer{border-top:1px solid var(--line);padding:17px 0 24px;color:var(--muted);font:9px var(--mono);letter-spacing:.06em}
-@media(max-width:650px){main{padding:38px 0 60px}.shell{width:calc(100% - 30px)}.panel{padding:21px}.stats{gap:7px}.stat{padding:12px 10px}.stat strong{font-size:25px}.toolbar{align-items:stretch;flex-direction:column}.toolbar input,.toolbar select{width:100%}.inquiry{padding:17px}.inquiry-top{flex-direction:column}.inquiry-grid{grid-template-columns:1fr 1fr;gap:12px}.card-controls{align-items:stretch;flex-direction:column}.card-controls select,.card-controls button{width:100%}.empty{padding:28px 16px}}
-@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#f3f0e8">
+  <title>Studio inbox — Blessson</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+  <style>
+    :root{--paper:#f3f0e8;--white:#fffefa;--ink:#17231f;--muted:#66716b;--line:#d9d5ca;--pine:#202e28;--gold:#c2a16f;--red:#a24e43;--green:#426346;--sans:'Manrope',Arial,sans-serif;--serif:'Newsreader',Georgia,serif;--mono:'IBM Plex Mono',monospace;--shadow:0 18px 54px #17231f0b}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.6 var(--sans);-webkit-font-smoothing:antialiased}button,input,select{font:inherit}button{color:inherit}a{color:inherit;text-decoration:none}.mono{font:10px var(--mono);letter-spacing:.13em;text-transform:uppercase}.shell{width:min(1120px,calc(100% - 48px));margin-inline:auto}
+    .topbar{height:76px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:11px}.brand-mark{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--gold);border-radius:9px 9px 9px 2px;background:#c2a16f12;color:#947244;font:italic 19px var(--serif)}.brand-name{font-size:12px;font-weight:700;letter-spacing:.07em}.brand-name small{display:block;margin-top:3px;color:var(--muted);font:8px var(--mono);letter-spacing:.14em}.top-actions{display:flex;align-items:center;gap:10px}.top-link,.icon-button,.logout-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 13px;border:1px solid var(--line);border-radius:5px;background:transparent;font-size:11px;cursor:pointer;transition:background .18s,border-color .18s,color .18s}.top-link:hover,.icon-button:hover,.logout-button:hover{border-color:#99998d;background:#fffefa}.connection-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--line);border-radius:99px;color:var(--muted);font-size:10px}.connection-pill:before{content:"";width:7px;height:7px;border-radius:50%;background:#b0a77e}.connection-pill.connected{border-color:#cad9c5;background:#edf3e8;color:#435e44}.connection-pill.connected:before{background:#71906b;box-shadow:0 0 0 3px #71906b20}.connection-pill.offline{border-color:#e4c9c5;background:#f8ecea;color:#8f4b43}.connection-pill.offline:before{background:#b76357}
+    main{padding:45px 0 76px}.page-heading{display:flex;justify-content:space-between;align-items:end;gap:24px;margin-bottom:29px}.eyebrow{margin:0 0 9px;color:#8b6a3e}.page-title{margin:0;font:500 clamp(42px,6vw,62px)/.96 var(--serif);letter-spacing:-.05em}.page-title span{color:#a7834d}.intro{max-width:545px;margin:12px 0 0;color:var(--muted);font-size:12px;line-height:1.8}.storage-note{display:flex;align-items:center;gap:12px;min-width:245px;padding:14px 16px;border:1px solid var(--line);border-radius:7px;background:#f9f7f1}.storage-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:5px;background:#e5e8df;color:#50634f;font-size:16px}.storage-note strong,.storage-note span{display:block}.storage-note strong{font-size:11px}.storage-note span{margin-top:2px;color:var(--muted);font:9px var(--mono);letter-spacing:.04em}
+    .panel{border:1px solid var(--line);border-radius:9px;background:var(--white);box-shadow:var(--shadow)}.login-panel{display:grid;grid-template-columns:.92fr 1.08fr;overflow:hidden}.login-aside{padding:32px;background:var(--pine);color:#f3f0e8;display:flex;flex-direction:column;justify-content:space-between;min-height:310px;position:relative;isolation:isolate}.login-aside:after{content:"";position:absolute;z-index:-1;width:240px;height:240px;border:1px solid #c2a16f35;border-radius:50%;right:-130px;bottom:-155px;box-shadow:0 0 0 28px #ffffff06,0 0 0 57px #ffffff04}.login-aside .mono{color:#d7c7a3}.login-aside h2{max-width:320px;margin:26px 0 10px;font:500 38px/1 var(--serif);letter-spacing:-.035em}.login-aside p{max-width:300px;margin:0;color:#d0d6ce;font-size:12px;line-height:1.8}.local-only{display:flex;align-items:center;gap:8px;color:#d9dfd6;font-size:10px}.local-only i{width:7px;height:7px;border-radius:50%;background:#afc68f}.login-form-wrap{padding:32px clamp(24px,4vw,48px);align-self:center}.login-form-wrap h3{margin:0;font:500 26px var(--serif)}.login-form-wrap>p{margin:7px 0 23px;color:var(--muted);font-size:11px;line-height:1.75}.field{display:grid;gap:7px;margin:17px 0}.field label,.filter-label{color:#647068;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase}.token-field{display:flex;gap:8px}.token-field input,.filter-control input,.filter-control select{width:100%;height:45px;border:1px solid #d2cec2;border-radius:5px;background:#fffefa;padding:0 12px;color:var(--ink);outline:none}.token-field input:focus,.filter-control input:focus,.filter-control select:focus{border-color:#9b7848;box-shadow:0 0 0 3px #c2a16f25}.reveal-button{flex:none;padding:0 12px;border:1px solid var(--line);border-radius:5px;background:#f7f5ef;font-size:10px;cursor:pointer}.primary-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:45px;padding:0 17px;border:0;border-radius:5px;background:var(--pine);color:#f3f0e8;font-size:11px;font-weight:700;cursor:pointer;transition:transform .18s,background .18s}.primary-button:hover{background:#31463a;transform:translateY(-1px)}.primary-button:disabled,.secondary-button:disabled,.pager-button:disabled{opacity:.45;cursor:not-allowed;transform:none}.login-status{min-height:20px;margin:10px 0 0;color:var(--red);font-size:11px}.login-hint{margin:14px 0 0;padding:11px 12px;border-left:2px solid var(--gold);background:#f5f1e7;color:#59635d;font-size:10px;line-height:1.7}.login-button{width:100%}
+    .dashboard[hidden],.login-panel[hidden]{display:none}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 18px}.stat{position:relative;overflow:hidden;padding:17px 19px;border:1px solid var(--line);border-radius:7px;background:#f9f7f1}.stat:after{content:"";position:absolute;width:62px;height:62px;right:-24px;bottom:-28px;border:1px solid #c2a16f50;border-radius:50%;box-shadow:0 0 0 9px #c2a16f0c}.stat span{display:block;color:var(--muted);font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase}.stat strong{display:block;margin-top:7px;font:500 34px/.95 var(--serif);letter-spacing:-.03em}.stat small{display:block;margin-top:7px;color:#85877e;font-size:9px}.stat-new strong{color:#856536}.stat-progress strong{color:#546c68}.stat-complete strong{color:#56724d}
+    .inbox-panel{overflow:hidden}.inbox-head{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:23px 25px 19px;border-bottom:1px solid #e5e1d8}.inbox-head .mono{margin:0 0 4px;color:#8b6a3e}.inbox-head h2{margin:0;font:500 27px/1 var(--serif);letter-spacing:-.025em}.inbox-head p{margin:7px 0 0;color:var(--muted);font-size:10px}.inbox-actions{display:flex;gap:8px}.secondary-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:5px;background:transparent;font-size:10px;cursor:pointer;transition:background .18s,border-color .18s}.secondary-button:hover{border-color:#a49d8f;background:#f8f6f0}.filters{display:grid;grid-template-columns:minmax(220px,1.7fr) repeat(3,minmax(130px,.75fr));gap:10px;padding:16px 24px;border-bottom:1px solid #ebe7de;background:#fbfaf6}.filter-control{display:grid;gap:6px}.filter-control input,.filter-control select{height:40px;font-size:11px}.search-wrap{position:relative}.search-wrap input{padding-left:35px}.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#83877d;font-size:14px;pointer-events:none}.result-line{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 24px 0;color:var(--muted);font-size:10px}.result-line strong{color:#4d5b53;font-weight:600}.inquiry-list{display:grid;gap:11px;padding:15px 24px 20px}.inquiry{border:1px solid #e5e1d8;border-radius:7px;background:#fff;padding:18px 19px;transition:border-color .18s,box-shadow .18s}.inquiry:hover{border-color:#c8c0ae;box-shadow:0 8px 20px #17231f08}.inquiry-top{display:flex;justify-content:space-between;align-items:start;gap:16px}.inquiry-title-wrap{min-width:0}.inquiry-kicker{margin:0 0 4px;color:#8b6a3e;font:8px var(--mono);letter-spacing:.1em;text-transform:uppercase}.inquiry h3{margin:0;font-size:15px;letter-spacing:-.015em;overflow-wrap:anywhere}.inquiry-sub{margin:4px 0 0;color:var(--muted);font-size:10px}.status-badge{display:inline-flex;align-items:center;gap:7px;flex:none;padding:6px 9px;border:1px solid #e3dfd3;border-radius:99px;background:#f5f2e9;color:#6b6352;font:8px var(--mono);letter-spacing:.07em;text-transform:uppercase}.status-badge:before{content:"";width:6px;height:6px;border-radius:50%;background:#ad9b70}.status-badge.status-new{border-color:#ebdbb7;background:#f8f0dc;color:#775923}.status-badge.status-new:before{background:#b4883c}.status-badge.status-in_progress{border-color:#d6e0de;background:#edf3f1;color:#48625e}.status-badge.status-in_progress:before{background:#71908a}.status-badge.status-completed{border-color:#d5e3d0;background:#edf4ea;color:#4f6c49}.status-badge.status-completed:before{background:#78966f}.detail-grid{display:grid;grid-template-columns:1.35fr repeat(3,1fr);gap:12px;margin:16px 0 13px;padding:13px 0;border-top:1px solid #efede6;border-bottom:1px solid #efede6}.detail-cell{min-width:0}.detail-label{display:block;color:#85877e;font:8px var(--mono);letter-spacing:.1em;text-transform:uppercase}.detail-value{display:block;margin-top:4px;color:#39463e;font-size:10px;overflow-wrap:anywhere}.detail-value.email{color:#715a36;text-decoration:underline;text-decoration-color:#c9b78e;text-underline-offset:3px}.message-label{margin:0 0 5px;color:#85877e;font:8px var(--mono);letter-spacing:.1em;text-transform:uppercase}.message{margin:0;color:#46524b;font-size:11px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere}.inquiry-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:14px;padding-top:12px;border-top:1px solid #efede6}.reply-link{display:inline-flex;align-items:center;gap:7px;color:#715a36;font-size:10px;font-weight:700}.reply-link:hover{color:#293d31;text-decoration:underline;text-underline-offset:3px}.status-editor{display:flex;align-items:center;gap:8px}.status-editor label{color:#85877e;font:8px var(--mono);letter-spacing:.08em;text-transform:uppercase}.status-editor select{height:36px;min-width:132px;padding:0 9px;border:1px solid var(--line);border-radius:4px;background:#fbfaf6;font-size:10px}.save-button{min-height:36px;padding:0 12px}.empty{padding:48px 24px;border:1px dashed #d2cec2;border-radius:7px;background:#fbfaf6;text-align:center}.empty-mark{width:42px;height:42px;display:grid;place-items:center;margin:0 auto 13px;border-radius:50%;background:#ebe9df;color:#776343;font:20px var(--serif)}.empty h3{margin:0;font:500 22px var(--serif)}.empty p{max-width:390px;margin:7px auto 0;color:var(--muted);font-size:11px;line-height:1.75}.clear-filters{margin-top:12px;border:0;background:transparent;color:#775c35;font-size:10px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.pagination{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 24px 18px;border-top:1px solid #ebe7de}.page-info{color:var(--muted);font-size:10px}.pager-actions{display:flex;gap:7px}.pager-button{min-height:35px;padding:0 11px;border:1px solid var(--line);border-radius:4px;background:transparent;font-size:10px;cursor:pointer}.pager-button:hover:not(:disabled){background:#f5f2e9;border-color:#b7ad9b}.dashboard[aria-busy="true"] .inquiry-list{opacity:.62;pointer-events:none}.notice{min-height:18px;margin:0;padding:0 24px 7px;color:#526754;font-size:10px}.notice.error{color:var(--red)}
+    footer{display:flex;justify-content:space-between;gap:16px;padding:18px 0 26px;border-top:1px solid var(--line);color:#7a7d73;font:8px var(--mono);letter-spacing:.06em}.footer-right{display:flex;gap:16px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    :focus-visible{outline:3px solid #987447;outline-offset:3px}button:focus:not(:focus-visible),input:focus:not(:focus-visible),select:focus:not(:focus-visible){outline:none}
+    @media(max-width:850px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.search-control{grid-column:1/-1}.detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:620px){.shell{width:calc(100% - 30px)}.topbar{height:66px}.connection-pill{font-size:0;padding:10px}.connection-pill:before{width:8px;height:8px}.top-link{min-height:38px;padding:0 9px;font-size:10px}.logout-button{min-height:38px;padding:0 9px;font-size:10px}.top-actions{gap:6px}.brand-mark{width:31px;height:31px}.brand-name{font-size:11px}main{padding:32px 0 54px}.page-heading{align-items:start;flex-direction:column;gap:17px;margin-bottom:22px}.page-title{font-size:48px}.storage-note{min-width:0;width:100%;padding:11px 13px}.login-panel{grid-template-columns:1fr}.login-aside{min-height:200px;padding:23px}.login-aside h2{font-size:33px;margin:20px 0 8px}.login-form-wrap{padding:24px 22px}.stats{grid-template-columns:repeat(2,1fr);gap:8px}.stat{padding:13px}.stat strong{font-size:29px}.inbox-head{align-items:start;padding:18px;flex-direction:column}.inbox-head h2{font-size:25px}.inbox-actions{width:100%}.inbox-actions button{flex:1}.filters{grid-template-columns:1fr 1fr;padding:13px}.search-control{grid-column:1/-1}.filter-control select{min-width:0}.result-line{padding:12px 14px 0;align-items:start;flex-direction:column;gap:3px}.inquiry-list{padding:12px 13px 16px}.inquiry{padding:15px 14px}.inquiry-top{gap:10px}.inquiry h3{font-size:14px}.status-badge{font-size:7px;padding:5px 7px}.detail-grid{gap:11px 9px;margin:13px 0 11px}.detail-value{font-size:10px}.inquiry-footer{align-items:stretch;flex-direction:column;gap:11px}.status-editor{justify-content:space-between;flex-wrap:wrap}.status-editor label{width:100%}.status-editor select{flex:1}.save-button{min-width:95px}.pagination{padding:13px;align-items:start;flex-direction:column}.pager-actions{width:100%}.pager-button{flex:1}footer{flex-direction:column;font-size:8px}.footer-right{justify-content:space-between}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+  </style>
 </head>
 <body>
-<header><div class="shell topbar"><a class="brand" href="/">AUDIO ENGINEER<small>PORTFOLIO · ADMIN</small></a><div class="top-actions"><a href="/">View site ↗</a><button id="logout-button" type="button" hidden>Sign out</button></div></div></header>
-<main class="shell">
-  <div class="eyebrow mono">STUDIO DASHBOARD</div><h1 class="page-title">Enquiry inbox.</h1><p class="intro">Review project requests, reply directly, and keep their status up to date. Enquiries stay in the local portfolio database.</p>
-  <section class="panel login-panel" id="login-panel"><h2>Admin sign in</h2><p>Enter the access token printed by the local server when it starts.</p><form id="login-form"><div class="field"><label for="token">Admin token</label><input id="token" name="token" type="password" autocomplete="current-password" required></div><button class="primary" type="submit">Open inbox</button><div class="status" id="login-status" role="status" aria-live="polite"></div></form><p class="help">The token is kept in this browser tab only. It is not saved in the website or sent to a third-party service.</p></section>
-  <section class="dashboard" id="dashboard" hidden><div class="stats"><div class="stat"><span>Total enquiries</span><strong id="total-count">0</strong></div><div class="stat"><span>New</span><strong id="new-count">0</strong></div><div class="stat"><span>In progress</span><strong id="progress-count">0</strong></div></div><div class="toolbar"><input id="search" type="search" placeholder="Search name, project, email…" aria-label="Search enquiries"><select id="status-filter" aria-label="Filter by status"><option value="all">All statuses</option><option value="new">New</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select><button class="secondary" id="export-button" type="button">Export CSV</button><button class="secondary" id="refresh-button" type="button">Refresh</button></div><p class="notice" id="list-status" role="status" aria-live="polite"></p><div class="inquiry-list" id="inquiry-list"></div></section>
-</main>
-<footer><div class="shell">Local portfolio inbox · Admin access required · Enquiry data stays on this machine</div></footer>
-<script>
-const KEY='audio-portfolio-admin-token',loginPanel=document.getElementById('login-panel'),dashboard=document.getElementById('dashboard'),loginStatus=document.getElementById('login-status'),listStatus=document.getElementById('list-status'),list=document.getElementById('inquiry-list'),logoutButton=document.getElementById('logout-button');
-let inquiries=[];
-async function api(path,options){options=options||{};const headers=Object.assign({},options.body?{'Content-Type':'application/json'}:{},{Authorization:'Bearer '+sessionStorage.getItem(KEY)},options.headers||{});const response=await fetch(path,Object.assign({},options,{headers}));const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||'The request could not be completed.');return body}
-function showDashboard(){loginPanel.hidden=true;dashboard.hidden=false;logoutButton.hidden=false}
-function showLogin(message){loginPanel.hidden=false;dashboard.hidden=true;logoutButton.hidden=true;loginStatus.textContent=message||''}
-function dateLabel(value){try{return new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}catch{return value}}
-function el(tag,cls,value){const node=document.createElement(tag);if(cls)node.className=cls;node.textContent=value||'';return node}
-function render(){
-  const query=document.getElementById('search').value.trim().toLowerCase(),status=document.getElementById('status-filter').value;
-  const fresh=inquiries.filter(item=>(status==='all'||item.status===status)&&[item.name,item.email,item.project,item.service,item.genre,item.message].join(' ').toLowerCase().includes(query));
-  document.getElementById('total-count').textContent=String(inquiries.length);document.getElementById('new-count').textContent=String(inquiries.filter(item=>item.status==='new').length);document.getElementById('progress-count').textContent=String(inquiries.filter(item=>item.status==='in_progress').length);list.replaceChildren();
-  if(!fresh.length){list.append(el('div','empty',inquiries.length?'No enquiries match those filters.':'No enquiries yet. New requests will appear here.'));return}
-  fresh.forEach(item=>{
-    const card=el('article','inquiry'),top=el('div','inquiry-top'),titleBlock=document.createElement('div');
-    titleBlock.append(el('h3','',item.project||'New project enquiry'),el('p','inquiry-sub',item.name+' · '+dateLabel(item.created_at)));top.append(titleBlock,el('span','badge '+item.status,item.status.replace('_',' ')));card.append(top);
-    const grid=el('div','inquiry-grid'),fields=[['Email',item.email,true],['Service',item.service],['Timeline',item.timeline||'Flexible'],['Genre / style',item.genre||'Not provided']];
-    fields.forEach(field=>{const cell=document.createElement('div');cell.append(el('span','',field[0]));if(field[2]){const anchor=el('a','',field[1]);anchor.href='mailto:'+encodeURIComponent(field[1]);cell.append(anchor)}else cell.append(el('strong','',field[1]));grid.append(cell)});
-    card.append(grid,el('p','message',item.message));const controls=el('div','card-controls'),select=document.createElement('select');select.setAttribute('aria-label','Update status for '+item.name);
-    [['new','New'],['in_progress','In progress'],['completed','Completed']].forEach(pair=>{const option=document.createElement('option');option.value=pair[0];option.textContent=pair[1];option.selected=item.status===pair[0];select.append(option)});
-    const save=el('button','secondary','Save status');save.type='button';save.addEventListener('click',async()=>{save.disabled=true;try{await api('/api/admin/inquiries/'+item.id,{method:'PATCH',body:JSON.stringify({status:select.value})});item.status=select.value;render();listStatus.textContent='Enquiry status updated.'}catch(error){listStatus.textContent=error.message;save.disabled=false}});
-    controls.append(select,save);card.append(controls);list.append(card);
-  });
-}
-async function loadInbox(){dashboard.classList.add('loading');listStatus.textContent='Loading enquiries…';try{const result=await api('/api/admin/inquiries');inquiries=result.inquiries;render();listStatus.textContent='Showing '+inquiries.length+' '+(inquiries.length===1?'enquiry.':'enquiries.')}catch(error){if(error.message==='Admin sign-in required.'){sessionStorage.removeItem(KEY);showLogin('That token was not accepted. Check the local server window and try again.')}else listStatus.textContent=error.message}finally{dashboard.classList.remove('loading')}}
-document.getElementById('login-form').addEventListener('submit',async event=>{event.preventDefault();const token=document.getElementById('token').value.trim();sessionStorage.setItem(KEY,token);try{await api('/api/admin/inquiries');showDashboard();await loadInbox()}catch(error){sessionStorage.removeItem(KEY);loginStatus.textContent=error.message==='Admin sign-in required.'?'That token was not accepted. Check the local server window and try again.':error.message}});
-logoutButton.addEventListener('click',()=>{sessionStorage.removeItem(KEY);document.getElementById('token').value='';showLogin('You have signed out.')});
-document.getElementById('refresh-button').addEventListener('click',loadInbox);document.getElementById('search').addEventListener('input',render);document.getElementById('status-filter').addEventListener('change',render);
-document.getElementById('export-button').addEventListener('click',()=>{const columns=['created_at','name','email','project','service','timeline','genre','message','status'],quote=value=>{let cell=String(value==null?'':value);if(/^[\s]*[=+@-]/.test(cell))cell="'"+cell;return '"'+cell.replaceAll('"','""')+'"'},csv=[columns.join(','),...inquiries.map(item=>columns.map(column=>quote(item[column])).join(','))].join('\r\n'),url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),anchor=document.createElement('a');anchor.href=url;anchor.download='portfolio-enquiries.csv';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
-if(sessionStorage.getItem(KEY)){showDashboard();loadInbox()}
-</script>
+  <header>
+    <div class="shell topbar">
+      <a class="brand" href="/" aria-label="Blessson portfolio">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <span class="brand-name">BLESSSON<small>LOCAL STUDIO</small></span>
+      </a>
+      <div class="top-actions">
+        <span class="connection-pill" id="connection-pill" role="status">Checking local server</span>
+        <a class="top-link" href="/">View portfolio <span aria-hidden="true">↗</span></a>
+        <button class="logout-button" id="logout-button" type="button" hidden>Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="page-heading" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow mono">Private workspace · Local only</p>
+        <h1 class="page-title" id="page-title">Studio inbox<span>.</span></h1>
+        <p class="intro">Keep project requests moving from first message to final delivery. Review details, reply to artists, and update each enquiry as you go.</p>
+      </div>
+      <aside class="storage-note" aria-label="Enquiry storage information">
+        <span class="storage-icon" aria-hidden="true">⌂</span>
+        <div><strong>Private by design</strong><span>SQLite · this computer only</span></div>
+      </aside>
+    </section>
+
+    <section class="panel login-panel" id="login-panel" aria-labelledby="login-title">
+      <div class="login-aside">
+        <div><span class="mono">Blessson · Audio engineer</span><h2 id="login-title">A clear view of every conversation.</h2><p>Your enquiries stay in the local portfolio database. Sign in with the one-time token from the server window.</p></div>
+        <div class="local-only"><i aria-hidden="true"></i> Local access only · not published online</div>
+      </div>
+      <div class="login-form-wrap">
+        <h3>Open your inbox</h3><p>Paste the private access token printed when the local server started.</p>
+        <form id="login-form">
+          <div class="field"><label for="token">Admin access token</label><div class="token-field"><input id="token" name="token" type="password" autocomplete="current-password" spellcheck="false" autocapitalize="none" required><button class="reveal-button" id="token-toggle" type="button" aria-label="Show access token" aria-pressed="false">Show</button></div></div>
+          <button class="primary-button login-button" id="login-button" type="submit">Open private inbox <span aria-hidden="true">↗</span></button>
+          <p class="login-status" id="login-status" role="status" aria-live="polite"></p>
+        </form>
+        <p class="login-hint" id="local-hint">The token is kept in this browser tab only. It is not saved to the website or sent to a third-party service.</p>
+      </div>
+    </section>
+
+    <section class="dashboard" id="dashboard" aria-label="Project enquiry dashboard" aria-busy="false" hidden>
+      <div class="stats" aria-label="Inbox overview">
+        <article class="stat"><span>Total enquiries</span><strong id="total-count">0</strong><small>Across all project requests</small></article>
+        <article class="stat stat-new"><span>New</span><strong id="new-count">0</strong><small>Waiting for a first reply</small></article>
+        <article class="stat stat-progress"><span>In progress</span><strong id="progress-count">0</strong><small>Active conversations</small></article>
+        <article class="stat stat-complete"><span>Completed</span><strong id="completed-count">0</strong><small>Finished requests</small></article>
+      </div>
+
+      <section class="panel inbox-panel" aria-labelledby="inbox-title">
+        <div class="inbox-head">
+          <div><p class="mono">Your inbox</p><h2 id="inbox-title">Project enquiries</h2><p>Search the full inbox, then reply or update the workflow status.</p></div>
+          <div class="inbox-actions"><button class="secondary-button" id="refresh-button" type="button"><span aria-hidden="true">↻</span> Refresh</button><button class="secondary-button" id="export-button" type="button"><span aria-hidden="true">↓</span> Export CSV</button></div>
+        </div>
+        <div class="filters" aria-label="Search and filter enquiries">
+          <div class="filter-control search-control"><label class="filter-label" for="search">Search inbox</label><div class="search-wrap"><span class="search-icon" aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Name, email, project, message…" autocomplete="off"></div></div>
+          <div class="filter-control"><label class="filter-label" for="status-filter">Status</label><select id="status-filter"><option value="all">All statuses</option><option value="new">New</option><option value="in_progress">In progress</option><option value="completed">Completed</option></select></div>
+          <div class="filter-control"><label class="filter-label" for="service-filter">Service</label><select id="service-filter"><option value="all">All services</option><option>Mixing</option><option>Mastering</option><option>Production</option><option>Recording</option><option>Sound design</option><option>Not sure yet</option></select></div>
+          <div class="filter-control"><label class="filter-label" for="sort-order">Order</label><select id="sort-order"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></div>
+        </div>
+        <div class="result-line"><span id="result-summary"><strong>0 enquiries</strong></span><span id="last-updated">Ready when you are</span></div>
+        <p class="notice" id="list-status" role="status" aria-live="polite"></p>
+        <div class="inquiry-list" id="inquiry-list"></div>
+        <div class="pagination" id="pagination" hidden><span class="page-info" id="page-info">Page 1 of 1</span><div class="pager-actions"><button class="pager-button" id="previous-page" type="button">← Previous</button><button class="pager-button" id="next-page" type="button">Next →</button></div></div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="shell"><span>BLESSSON · PRIVATE LOCAL INBOX</span><div class="footer-right"><span>Data stays on this computer</span><a href="/">Back to portfolio ↑</a></div></footer>
+
+  <script>
+    const TOKEN_KEY = 'audio-portfolio-admin-token';
+    const $ = (selector) => document.querySelector(selector);
+    const loginPanel = $('#login-panel');
+    const dashboard = $('#dashboard');
+    const loginForm = $('#login-form');
+    const loginButton = $('#login-button');
+    const loginStatus = $('#login-status');
+    const connectionPill = $('#connection-pill');
+    const listStatus = $('#list-status');
+    const list = $('#inquiry-list');
+    const logoutButton = $('#logout-button');
+    const exportButton = $('#export-button');
+    const pagination = $('#pagination');
+    const pageInfo = $('#page-info');
+    const pageSize = 12;
+    let page = 1;
+    let pages = 1;
+    let inquiries = [];
+    let debounceTimer;
+    let refreshTimer;
+    let localServerReady = false;
+
+    function setConnection(connected, label) {
+      connectionPill.textContent = label;
+      connectionPill.classList.toggle('connected', connected);
+      connectionPill.classList.toggle('offline', !connected);
+    }
+
+    function showLogin(message = '') {
+      loginPanel.hidden = false;
+      dashboard.hidden = true;
+      logoutButton.hidden = true;
+      loginStatus.textContent = message;
+      if (refreshTimer) window.clearInterval(refreshTimer);
+    }
+
+    function showDashboard() {
+      loginPanel.hidden = true;
+      dashboard.hidden = false;
+      logoutButton.hidden = false;
+      loginStatus.textContent = '';
+      if (refreshTimer) window.clearInterval(refreshTimer);
+      refreshTimer = window.setInterval(() => {
+        if (!document.hidden && sessionStorage.getItem(TOKEN_KEY)) loadInbox(page, { quiet: true });
+      }, 60000);
+    }
+
+    function renderEmpty(title, description, canClear = false) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      const symbol = document.createElement('div');
+      symbol.className = 'empty-mark';
+      symbol.setAttribute('aria-hidden', 'true');
+      symbol.textContent = canClear ? '⌕' : '✳';
+      const heading = document.createElement('h3');
+      heading.textContent = title;
+      const copy = document.createElement('p');
+      copy.textContent = description;
+      empty.append(symbol, heading, copy);
+      if (canClear) {
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'clear-filters';
+        clear.textContent = 'Clear search and filters';
+        clear.addEventListener('click', clearFilters);
+        empty.append(clear);
+      }
+      list.replaceChildren(empty);
+    }
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined && text !== null) node.textContent = String(text);
+      return node;
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value || 'Unknown date');
+      return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    }
+
+    function createDetail(label, value, href = '') {
+      const cell = el('div', 'detail-cell');
+      cell.append(el('span', 'detail-label', label));
+      if (href) {
+        const link = el('a', 'detail-value email', value);
+        link.href = href;
+        cell.append(link);
+      } else {
+        cell.append(el('strong', 'detail-value', value || 'Not provided'));
+      }
+      return cell;
+    }
+
+    function renderInquiries(records) {
+      list.replaceChildren();
+      if (!records.length) {
+        const hasFilters = Boolean($('#search').value.trim()) || $('#status-filter').value !== 'all' || $('#service-filter').value !== 'all';
+        if (hasFilters) renderEmpty('No enquiries match those filters.', 'Try a different search or clear the filters to see the full inbox.', true);
+        else renderEmpty('Your inbox is clear.', 'New enquiries sent through the local portfolio will appear here.');
+        return;
+      }
+
+      for (const item of records) {
+        const card = el('article', 'inquiry');
+        const top = el('div', 'inquiry-top');
+        const titleWrap = el('div', 'inquiry-title-wrap');
+        titleWrap.append(
+          el('p', 'inquiry-kicker', `Enquiry ${String(item.id).padStart(4, '0')}`),
+          el('h3', '', item.project || 'New project enquiry'),
+          el('p', 'inquiry-sub', `${item.name} · Received ${formatDate(item.created_at)}`)
+        );
+        const statusName = item.status === 'in_progress' ? 'In progress' : item.status === 'completed' ? 'Completed' : 'New';
+        top.append(titleWrap, el('span', `status-badge status-${item.status}`, statusName));
+        card.append(top);
+
+        const emailSubject = `Re: Audio project enquiry — ${item.project || item.name}`;
+        const details = el('div', 'detail-grid');
+        details.append(
+          createDetail('Reply address', item.email, `mailto:${item.email}?subject=${encodeURIComponent(emailSubject)}`),
+          createDetail('Service', item.service),
+          createDetail('Timeline', item.timeline || 'Flexible'),
+          createDetail('Genre / style', item.genre || 'Not provided')
+        );
+        card.append(details, el('p', 'message-label', 'Project notes'), el('p', 'message', item.message));
+
+        const footer = el('div', 'inquiry-footer');
+        const reply = el('a', 'reply-link', 'Reply to this enquiry ↗');
+        reply.href = `mailto:${item.email}?subject=${encodeURIComponent(emailSubject)}`;
+        footer.append(reply);
+
+        const editor = el('div', 'status-editor');
+        const selectId = `status-${item.id}`;
+        const label = el('label', '', 'Workflow status');
+        label.htmlFor = selectId;
+        const select = document.createElement('select');
+        select.id = selectId;
+        select.setAttribute('aria-label', `Workflow status for ${item.name}`);
+        const options = [['new', 'New'], ['in_progress', 'In progress'], ['completed', 'Completed']];
+        for (const [value, text] of options) {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = text;
+          option.selected = item.status === value;
+          select.append(option);
+        }
+        const save = el('button', 'primary-button save-button', 'Save status');
+        save.type = 'button';
+        save.disabled = true;
+        select.addEventListener('change', () => { save.disabled = select.value === item.status; });
+        save.addEventListener('click', async () => {
+          save.disabled = true;
+          listStatus.classList.remove('error');
+          listStatus.textContent = 'Saving status…';
+          try {
+            await requestJson(`/api/admin/inquiries/${item.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: select.value })
+            });
+            await loadInbox(page, { quiet: true, message: 'Enquiry status updated.' });
+          } catch (error) {
+            listStatus.classList.add('error');
+            listStatus.textContent = error.message;
+            save.disabled = false;
+          }
+        });
+        editor.append(label, select, save);
+        footer.append(editor);
+        card.append(footer);
+        list.append(card);
+      }
+    }
+
+    function filtersForRequest(includePage = true) {
+      const params = new URLSearchParams();
+      const query = $('#search').value.trim();
+      if (query) params.set('q', query);
+      if ($('#status-filter').value !== 'all') params.set('status', $('#status-filter').value);
+      if ($('#service-filter').value !== 'all') params.set('service', $('#service-filter').value);
+      params.set('sort', $('#sort-order').value);
+      if (includePage) {
+        params.set('page', String(page));
+        params.set('page_size', String(pageSize));
+      }
+      return params;
+    }
+
+    async function requestJson(path, options = {}, token = sessionStorage.getItem(TOKEN_KEY)) {
+      const headers = { ...(options.headers || {}) };
+      if (options.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(path, { ...options, headers, cache: 'no-store' });
+      const body = await response.json().catch(() => ({}));
+      if (response.status === 401) throw new Error('Admin sign-in required.');
+      if (!response.ok) throw new Error(body.error || `Request could not be completed (${response.status}).`);
+      return body;
+    }
+
+    async function loadInbox(nextPage = page, options = {}) {
+      if (!sessionStorage.getItem(TOKEN_KEY)) return showLogin('Sign in to open the private inbox.');
+      page = Math.max(1, nextPage);
+      dashboard.setAttribute('aria-busy', 'true');
+      listStatus.classList.remove('error');
+      if (!options.quiet) listStatus.textContent = 'Loading enquiries…';
+      try {
+        const params = filtersForRequest(true);
+        const result = await requestJson(`/api/admin/inquiries?${params.toString()}`);
+        inquiries = result.inquiries || [];
+        const stats = result.stats || {};
+        $('#total-count').textContent = String(stats.total || 0);
+        $('#new-count').textContent = String(stats.new || 0);
+        $('#progress-count').textContent = String(stats.in_progress || 0);
+        $('#completed-count').textContent = String(stats.completed || 0);
+        page = result.pagination.page;
+        pages = Math.max(1, result.pagination.pages);
+        const total = result.pagination.total;
+        const start = total ? (page - 1) * pageSize + 1 : 0;
+        const end = Math.min(page * pageSize, total);
+        $('#result-summary').innerHTML = `<strong>${start}–${end} of ${total} matching ${total === 1 ? 'enquiry' : 'enquiries'}</strong>`;
+        $('#last-updated').textContent = `Updated ${new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date())}`;
+        pageInfo.textContent = `Page ${page} of ${pages}`;
+        $('#previous-page').disabled = page <= 1;
+        $('#next-page').disabled = page >= pages;
+        pagination.hidden = total === 0;
+        exportButton.disabled = total === 0;
+        renderInquiries(inquiries);
+        listStatus.classList.remove('error');
+        listStatus.textContent = options.message || (total ? 'Select an enquiry status to keep the inbox up to date.' : '');
+      } catch (error) {
+        if (error.message === 'Admin sign-in required.') {
+          sessionStorage.removeItem(TOKEN_KEY);
+          showLogin('Your session ended. Enter the local access token again.');
+        } else {
+          listStatus.classList.add('error');
+          listStatus.textContent = `${error.message} Check that the local server is running, then refresh.`;
+        }
+      } finally {
+        dashboard.setAttribute('aria-busy', 'false');
+      }
+    }
+
+    function clearFilters() {
+      $('#search').value = '';
+      $('#status-filter').value = 'all';
+      $('#service-filter').value = 'all';
+      $('#sort-order').value = 'newest';
+      page = 1;
+      loadInbox(page);
+    }
+
+    async function exportCsv() {
+      exportButton.disabled = true;
+      listStatus.classList.remove('error');
+      listStatus.textContent = 'Preparing filtered CSV…';
+      try {
+        const params = filtersForRequest(false);
+        const token = sessionStorage.getItem(TOKEN_KEY);
+        const response = await fetch(`/api/admin/export.csv?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` }, cache: 'no-store'
+        });
+        if (response.status === 401) throw new Error('Admin sign-in required.');
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.error || `Export could not be completed (${response.status}).`);
+        }
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = objectUrl;
+        anchor.download = `blessson-enquiries-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        listStatus.textContent = 'Filtered CSV exported.';
+      } catch (error) {
+        if (error.message === 'Admin sign-in required.') {
+          sessionStorage.removeItem(TOKEN_KEY);
+          showLogin('Your session ended. Enter the local access token again.');
+        } else {
+          listStatus.classList.add('error');
+          listStatus.textContent = error.message;
+        }
+      } finally {
+        exportButton.disabled = false;
+      }
+    }
+
+    async function connectLocalServer() {
+      const localHost = ['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname);
+      if (!localHost || !['http:', 'https:'].includes(location.protocol)) {
+        setConnection(false, 'Local server required');
+        loginButton.disabled = true;
+        loginStatus.textContent = 'This inbox only works on the local portfolio server. Start server.py, then open http://127.0.0.1:8787/admin.';
+        return;
+      }
+      try {
+        const response = await fetch('/api/health', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Local server did not respond.');
+        localServerReady = true;
+        setConnection(true, 'Local server connected');
+        loginButton.disabled = false;
+        const savedToken = sessionStorage.getItem(TOKEN_KEY);
+        if (!savedToken) return;
+        try {
+          await requestJson(`/api/admin/inquiries?page=1&page_size=${pageSize}`, {}, savedToken);
+          showDashboard();
+          await loadInbox(1, { quiet: true });
+        } catch (error) {
+          sessionStorage.removeItem(TOKEN_KEY);
+          showLogin(error.message === 'Admin sign-in required.' ? 'That saved session expired. Enter the local token again.' : error.message);
+        }
+      } catch {
+        localServerReady = false;
+        setConnection(false, 'Local server offline');
+        loginButton.disabled = true;
+        loginStatus.textContent = 'Start server.py first. Then refresh this page at http://127.0.0.1:8787/admin.';
+      }
+    }
+
+    $('#token-toggle').addEventListener('click', () => {
+      const input = $('#token');
+      const reveal = input.type === 'password';
+      input.type = reveal ? 'text' : 'password';
+      $('#token-toggle').textContent = reveal ? 'Hide' : 'Show';
+      $('#token-toggle').setAttribute('aria-label', reveal ? 'Hide access token' : 'Show access token');
+      $('#token-toggle').setAttribute('aria-pressed', String(reveal));
+      input.focus();
+    });
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!localServerReady || !loginForm.reportValidity()) return;
+      const token = $('#token').value.trim();
+      loginButton.disabled = true;
+      loginStatus.textContent = 'Checking your local access…';
+      try {
+        await requestJson(`/api/admin/inquiries?page=1&page_size=${pageSize}`, {}, token);
+        sessionStorage.setItem(TOKEN_KEY, token);
+        showDashboard();
+        await loadInbox(1, { quiet: true });
+      } catch (error) {
+        loginStatus.textContent = error.message === 'Admin sign-in required.' ? 'That token was not accepted. Copy the token from the server window and try again.' : error.message;
+      } finally {
+        loginButton.disabled = false;
+      }
+    });
+
+    logoutButton.addEventListener('click', () => {
+      sessionStorage.removeItem(TOKEN_KEY);
+      $('#token').value = '';
+      showLogin('You have signed out of the local inbox.');
+      $('#token').focus();
+    });
+
+    $('#refresh-button').addEventListener('click', () => loadInbox(page));
+    exportButton.addEventListener('click', exportCsv);
+    $('#previous-page').addEventListener('click', () => { if (page > 1) loadInbox(page - 1); });
+    $('#next-page').addEventListener('click', () => { if (page < pages) loadInbox(page + 1); });
+    $('#search').addEventListener('input', () => {
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => { page = 1; loadInbox(page, { quiet: true }); }, 220);
+    });
+    ['#status-filter', '#service-filter', '#sort-order'].forEach(selector => $(selector).addEventListener('change', () => { page = 1; loadInbox(page); }));
+    connectLocalServer();
+  </script>
 </body>
 </html>

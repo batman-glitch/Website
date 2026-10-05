@@ -13,7 +13,7 @@ The local server listens only on `http://127.0.0.1:8787`.
 - Portfolio: `http://127.0.0.1:8787/`
 - Private local inbox: `http://127.0.0.1:8787/admin`
 
-On first start, the server prints a one-time admin token and saves it in `data/.admin-token` with owner-only file permissions. Keep the token private. Enquiries submitted to the local server are stored in `data/portfolio.sqlite3`. The inbox supports search, status updates, direct email replies, and CSV export.
+On first start, the server prints a one-time admin token and saves it in `data/.admin-token` with owner-only file permissions. Keep the token private. Enquiries submitted to the local server are stored in `data/portfolio.sqlite3`. The private dashboard includes inbox totals, inbox-wide search, status and service filters, date sorting, paginated enquiry cards, direct email replies, status updates, and a filtered CSV export. Search and pagination run against SQLite, so larger inboxes do not need to be loaded into the browser at once.
 
 Opening `index.html` as a local file or visiting the static Vercel deployment does not connect to the local database. If no hosted enquiry endpoint is available, the form creates a ready-to-send email draft addressed to `blessonkondeti@gmail.com`.
 
