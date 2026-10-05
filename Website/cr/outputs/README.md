@@ -1,22 +1,24 @@
-# Audio engineer portfolio
+# Blessson — Audio Engineer Portfolio
 
-This is a local full-stack starter. It uses the existing HTML frontend, a small Python standard-library API, and SQLite for project enquiries.
+A responsive, static portfolio with an optional local enquiry inbox. The live Vercel site serves the portfolio and prepares an email draft if an online form endpoint is unavailable. It does not claim to store public enquiries.
 
-## Run locally
+## Run the local inbox
 
 From this folder, run:
 
     python3 server.py
 
-The server listens only on http://127.0.0.1:8787. On first start, it prints an admin access token and saves it in data/.admin-token with owner-only file permissions.
+The local server listens only on `http://127.0.0.1:8787`.
 
-- Portfolio: http://127.0.0.1:8787/
-- Private inbox: http://127.0.0.1:8787/admin
+- Portfolio: `http://127.0.0.1:8787/`
+- Private local inbox: `http://127.0.0.1:8787/admin`
 
-Paste the token into the inbox sign-in screen. The token stays in the current browser tab. Enquiries are stored in data/portfolio.sqlite3; the admin screen can search, filter, update status, and export CSV. Use the email link on an enquiry to reply.
+On first start, the server prints a one-time admin token and saves it in `data/.admin-token` with owner-only file permissions. Keep the token private. Enquiries submitted to the local server are stored in `data/portfolio.sqlite3`. The inbox supports search, status updates, direct email replies, and CSV export.
 
-If you open index.html directly as a file, the enquiry form falls back to preparing an email draft. Start the local server to save enquiries into the inbox.
+Opening `index.html` as a local file or visiting the static Vercel deployment does not connect to the local database. If no hosted enquiry endpoint is available, the form creates a ready-to-send email draft addressed to `blessonkondeti@gmail.com`.
 
-## Before public launch
+## Hosting and data
 
-This server is intentionally bound to the local machine and is a development starter. Public hosting needs a production web server, HTTPS, persistent backups, and a configured email notification/reply workflow. Replace the demo identity, contact email, and sample credits with confirmed details. Real audio samples can be added once supplied.
+`server.py` and the SQLite inbox are for local development. Vercel deploys the public site as static files, so the SQLite database and private inbox do not run there. Before collecting enquiries into an online dashboard, connect a durable database and a trusted email provider, configure their private environment variables in Vercel, and add an authenticated online admin. Do not put database credentials or email API keys in the public frontend.
+
+The showcase cards are marked as concept studies. Replace them with confirmed release credits and audio links when those are ready.

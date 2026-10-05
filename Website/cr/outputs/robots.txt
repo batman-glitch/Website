@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /server.py
+Disallow: /data/
+Sitemap: https://website-ivory-six-35.vercel.app/sitemap.xml
