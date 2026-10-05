@@ -61,6 +61,7 @@
     .navlinks>a:hover{color:#876B38}
   </style>
   <link rel="stylesheet" href="assets/site-upgrade.css">
+  <link rel="stylesheet" href="assets/portfolio-live.css">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","name":"Blessson","jobTitle":"Audio Engineer","url":"https://website-ivory-six-35.vercel.app/","email":"mailto:blessonkondeti@gmail.com","knowsAbout":["Audio mixing","Audio mastering","Music production","Sound design"]}</script>
 </head>
 <body>
@@ -133,7 +134,7 @@
       const values=Object.fromEntries(new FormData(inquiryForm).entries());
       const subject='Audio project enquiry — '+(values.project||values.name);
       const body=['Name: '+values.name,'Email: '+values.email,'Artist / project: '+(values.project||'Not provided'),'Service: '+values.service,'Timeline: '+(values.timeline||'Flexible'),'Genre / style: '+(values.genre||'Not provided'),'',values.message].join('\n');
-      const emailHref='mailto:blessonkondeti@gmail.com?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+      const emailHref='mailto:'+(window.BlesssonContactEmail||'blessonkondeti@gmail.com')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
       const status=document.getElementById('form-status');
       formFallback.href=emailHref;
       formFallback.hidden=true;
@@ -162,5 +163,6 @@
     if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){sectionLinks.forEach(link=>{if(link.getAttribute('href')===`#${entry.target.id}`)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current')})}}),{rootMargin:'-35% 0px -55% 0px'});['home','work','services','about','contact'].forEach(id=>{const section=document.getElementById(id);if(section)observer.observe(section)})}
     document.getElementById('year').textContent=new Date().getFullYear();
   </script>
+  <script src="assets/portfolio-live.js" defer></script>
 </body>
 </html>

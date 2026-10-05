@@ -19,6 +19,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from lib.admin_backend import create_local_admin, handle_admin_request, handle_inquiry_request, local_admin_exists, prepare_local_database
+from lib.platform_backend import handle_platform_request
 
 
 DATA_DIR = SITE_DIR / "data"
@@ -140,6 +141,18 @@ class PortfolioHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
+        if path == "/assets/admin-platform.bundle.js":
+            source = SITE_DIR / "assets" / "admin-platform.js"
+            try:
+                encoded = source.read_bytes()
+            except OSError:
+                return self.send_error(404)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/javascript; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, max-age=0")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            return self.wfile.write(encoded)
         if path in {"/admin", "/admin/"}:
             self.path = "/admin.html"
             return super().do_GET()
@@ -147,6 +160,8 @@ class PortfolioHandler(SimpleHTTPRequestHandler):
             return self.send_json(200, {"ok": True})
         if path == "/api/admin":
             return self.dispatch_backend(handle_admin_request)
+        if path.startswith("/api/"):
+            return self.dispatch_backend(handle_platform_request)
         if path.startswith("/data/") or path in {"/data", "/server.py", "/README.md"}:
             return self.send_error(404)
         return super().do_GET()
@@ -157,6 +172,17 @@ class PortfolioHandler(SimpleHTTPRequestHandler):
             return self.dispatch_backend(handle_admin_request)
         if path == "/api/inquiries":
             return self.dispatch_backend(handle_inquiry_request)
+        if path.startswith("/api/admin/"):
+            return self.dispatch_backend(handle_platform_request)
+        return self.send_error(404)
+
+    def do_PUT(self) -> None:
+        return self.do_POST()
+
+    def do_DELETE(self) -> None:
+        path = urlsplit(self.path).path
+        if path.startswith("/api/admin/"):
+            return self.dispatch_backend(handle_platform_request)
         return self.send_error(404)
 
     def do_PATCH(self) -> None:

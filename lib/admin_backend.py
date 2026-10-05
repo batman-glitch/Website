@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from http.cookies import SimpleCookie
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LOCAL_DB = ROOT / "Website" / "cr" / "outputs" / "data" / "portfolio.sqlite3"
@@ -26,7 +26,7 @@ VALID_STATUSES = {"new", "in_progress", "completed"}
 PAGE_SIZES = {12, 24, 48}
 MAX_BODY_BYTES = 18 * 1024
 PBKDF2_ROUNDS = 600_000
-SESSION_TTL = timedelta(hours=8)
+SESSION_TTL = timedelta(hours=4)
 LOGIN_WINDOW = timedelta(minutes=15)
 MAX_LOGIN_FAILURES = 5
 INQUIRY_WINDOW = timedelta(minutes=15)
@@ -117,7 +117,8 @@ def _ensure_schema(db: Database) -> None:
         )""")
         db.execute(f"""CREATE TABLE IF NOT EXISTS admin_users (
             id {serial}, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
-            must_change_password INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+            must_change_password INTEGER NOT NULL DEFAULT 0, mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+            totp_secret_enc TEXT, mfa_setup_expires TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
         )""")
         db.execute(f"""CREATE TABLE IF NOT EXISTS admin_sessions (
             token_hash TEXT PRIMARY KEY, user_id {user_id_type} NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
@@ -127,6 +128,21 @@ def _ensure_schema(db: Database) -> None:
             rate_key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, window_started_at TEXT NOT NULL,
             locked_until TEXT
         )""")
+        # Add MFA columns to existing production databases without dropping account data.
+        if db.postgres:
+            db.execute("ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE")
+            db.execute("ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS totp_secret_enc TEXT")
+            db.execute("ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS mfa_setup_expires TEXT")
+        else:
+            admin_columns = {row["name"] for row in db.execute("PRAGMA table_info(admin_users)").fetchall()}
+            for name, definition in (("mfa_enabled", "BOOLEAN NOT NULL DEFAULT FALSE"), ("totp_secret_enc", "TEXT"), ("mfa_setup_expires", "TEXT")):
+                if name not in admin_columns:
+                    db.execute(f"ALTER TABLE admin_users ADD COLUMN {name} {definition}")
+        db.execute(f"""CREATE TABLE IF NOT EXISTS admin_recovery_codes (
+            id {serial}, user_id {user_id_type} NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+            code_hash TEXT NOT NULL, created_at TEXT NOT NULL, used_at TEXT
+        )""")
+        db.execute("CREATE INDEX IF NOT EXISTS admin_recovery_user_idx ON admin_recovery_codes(user_id, used_at)")
         db.execute("CREATE INDEX IF NOT EXISTS inquiries_created_at_idx ON inquiries(created_at DESC)")
         db.execute("CREATE INDEX IF NOT EXISTS inquiries_status_created_at_idx ON inquiries(status, created_at DESC)")
         db.execute("CREATE INDEX IF NOT EXISTS inquiries_service_created_at_idx ON inquiries(service, created_at DESC)")
@@ -136,18 +152,43 @@ def _ensure_schema(db: Database) -> None:
 
 
 def _password_hash(password: str) -> str:
-    salt = secrets.token_bytes(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ROUNDS, dklen=32)
-    return "pbkdf2_sha256${}${}${}".format(
-        PBKDF2_ROUNDS,
-        base64.urlsafe_b64encode(salt).decode("ascii").rstrip("="),
-        base64.urlsafe_b64encode(digest).decode("ascii").rstrip("="),
-    )
+    try:
+        from argon2 import PasswordHasher, Type
+        return PasswordHasher(time_cost=3, memory_cost=65_536, parallelism=2, hash_len=32, salt_len=16, type=Type.ID).hash(password)
+    except ImportError:
+        salt = secrets.token_bytes(16)
+        digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ROUNDS, dklen=32)
+        return "pbkdf2_sha256${}${}${}".format(
+            PBKDF2_ROUNDS,
+            base64.urlsafe_b64encode(salt).decode("ascii").rstrip("="),
+            base64.urlsafe_b64encode(digest).decode("ascii").rstrip("="),
+        )
+
+
+def _password_needs_upgrade(encoded: str) -> bool:
+    if not encoded.startswith("$argon2id$"):
+        return True
+    try:
+        from argon2 import PasswordHasher
+        return PasswordHasher(time_cost=3, memory_cost=65_536, parallelism=2, hash_len=32, salt_len=16).check_needs_rehash(encoded)
+    except ImportError:
+        return False
+    except Exception:
+        return True
 
 
 def _verify_password(password: str, encoded: str | None) -> bool:
     if not encoded:
         return False
+    if encoded.startswith("$argon2id$"):
+        try:
+            from argon2 import PasswordHasher
+            from argon2.exceptions import VerifyMismatchError, VerificationError
+            return PasswordHasher().verify(encoded, password)
+        except ImportError:
+            return False
+        except (VerifyMismatchError, VerificationError, ValueError, TypeError):
+            return False
     try:
         algorithm, rounds_text, salt_text, expected_text = encoded.split("$", 3)
         if algorithm != "pbkdf2_sha256":
@@ -163,6 +204,62 @@ def _verify_password(password: str, encoded: str | None) -> bool:
         return False
 
 
+def _mfa_fernet():
+    key = os.environ.get("ADMIN_MFA_ENCRYPTION_KEY", "").strip()
+    if not key:
+        raise RuntimeError("ADMIN_MFA_ENCRYPTION_KEY is not configured")
+    from cryptography.fernet import Fernet
+    return Fernet(key.encode("ascii"))
+
+
+def _encrypt_totp_secret(secret: str) -> str:
+    return _mfa_fernet().encrypt(secret.encode("ascii")).decode("ascii")
+
+
+def _decrypt_totp_secret(ciphertext: str) -> str:
+    return _mfa_fernet().decrypt(ciphertext.encode("ascii")).decode("ascii")
+
+
+def _totp_at(secret: str, timestamp: int) -> str:
+    key = base64.b32decode(secret + "=" * (-len(secret) % 8), casefold=True)
+    counter = int(timestamp // 30).to_bytes(8, "big")
+    digest = hmac.new(key, counter, hashlib.sha1).digest()
+    offset = digest[-1] & 0x0F
+    number = (int.from_bytes(digest[offset:offset + 4], "big") & 0x7FFFFFFF) % 1_000_000
+    return f"{number:06d}"
+
+
+def _normalize_recovery_code(code: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", code.upper())
+
+
+def _verify_mfa_code(db: Database, user_id: int, encrypted_secret: str | None, supplied: object, now: datetime) -> bool:
+    if not isinstance(supplied, str):
+        return False
+    code = supplied.strip()
+    if encrypted_secret and re.fullmatch(r"\d{6}", code):
+        try:
+            secret = _decrypt_totp_secret(encrypted_secret)
+            epoch = int(now.timestamp())
+            return any(hmac.compare_digest(_totp_at(secret, epoch + offset * 30), code) for offset in (-1, 0, 1))
+        except Exception:
+            return False
+    normalized = _normalize_recovery_code(code)
+    if len(normalized) != 16:
+        return False
+    digest = hashlib.sha256(normalized.encode("ascii")).hexdigest()
+    row = db.execute("SELECT id FROM admin_recovery_codes WHERE user_id = ? AND code_hash = ? AND used_at IS NULL", (user_id, digest)).fetchone()
+    if not row:
+        return False
+    db.execute("UPDATE admin_recovery_codes SET used_at = ? WHERE id = ?", (iso(now), int(row["id"])))
+    return True
+
+
+def _new_recovery_codes() -> list[str]:
+    alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    return ["-".join("".join(secrets.choice(alphabet) for _ in range(4)) for _ in range(4)) for _ in range(10)]
+
+
 def _valid_email(value: object) -> str:
     email = value.strip().lower() if isinstance(value, str) else ""
     if len(email) > 254 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
@@ -171,6 +268,8 @@ def _valid_email(value: object) -> str:
 
 
 def _valid_password_hash(value: str) -> bool:
+    if isinstance(value, str) and value.startswith("$argon2id$"):
+        return len(value) < 512 and bool(re.fullmatch(r"\$argon2id\$v=19\$m=\d+,t=\d+,p=\d+\$[A-Za-z0-9+/]+\$[A-Za-z0-9+/]+", value))
     try:
         algorithm, rounds_text, salt_text, digest_text = value.split("$", 3)
         rounds = int(rounds_text)
@@ -367,7 +466,7 @@ def _load_session(db: Database, headers, production: bool, now_text: str):
         return None, ""
     token_hash = hashlib.sha256(raw_token.encode("ascii", "ignore")).hexdigest()
     row = db.execute("""SELECT s.token_hash, s.csrf_hash, s.user_id, s.expires_at,
-        u.email, u.must_change_password FROM admin_sessions s
+        u.email, u.must_change_password, u.mfa_enabled FROM admin_sessions s
         JOIN admin_users u ON u.id = s.user_id
         WHERE s.token_hash = ? AND s.expires_at > ?""", (token_hash, now_text)).fetchone()
     csrf_token = cookies.get(csrf_name, "")
@@ -490,7 +589,7 @@ def handle_admin_request(method: str, path: str, headers, body: bytes, productio
                 session, _ = _load_session(db, headers, production, now_text)
                 if not session:
                     return _json(200, {"authenticated": False})
-                return _json(200, {"authenticated": True, "email": session["email"], "mustChangePassword": bool(session["must_change_password"])})
+                return _json(200, {"authenticated": True, "email": session["email"], "mustChangePassword": bool(session["must_change_password"]), "mfaEnabled": bool(session["mfa_enabled"])})
             if action == "login" and method == "POST":
                 if not _origin_ok(headers):
                     return _json(403, {"error": "This sign-in request could not be verified."})
@@ -503,25 +602,69 @@ def handle_admin_request(method: str, path: str, headers, body: bytes, productio
                 rate_key = _rate_key(secret, "login", identity)
                 if _rate_limited(db, rate_key, now_text):
                     return _json(429, {"error": "Too many sign-in attempts. Try again in 15 minutes."}, [("Retry-After", "900")])
-                configured = db.execute("SELECT id, email, password_hash, must_change_password FROM admin_users WHERE email = ?", (email,)).fetchone()
+                configured = db.execute("SELECT id, email, password_hash, must_change_password, mfa_enabled, totp_secret_enc FROM admin_users WHERE email = ?", (email,)).fetchone()
                 password_ok = _verify_password(password, configured["password_hash"] if configured else DUMMY_PASSWORD_HASH)
-                if not configured or not password_ok:
+                mfa_code = payload.get("mfaCode", "")
+                recovery_code = payload.get("recoveryCode", "")
+                mfa_ok = not (configured and configured["mfa_enabled"]) or (password_ok and _verify_mfa_code(db, int(configured["id"]), configured["totp_secret_enc"], mfa_code or recovery_code, now))
+                if not configured or not password_ok or not mfa_ok:
                     attempts, locked = _record_rate_failure(db, rate_key, now, MAX_LOGIN_FAILURES, LOGIN_WINDOW)
-                    message = "Too many sign-in attempts. Try again in 15 minutes." if locked else "Email or password is incorrect."
+                    message = "Too many sign-in attempts. Try again in 15 minutes." if locked else "Check your email, password, and authenticator code."
                     return _json(429 if locked else 401, {"error": message}, [("Retry-After", "900")] if locked else None)
+                if _password_needs_upgrade(configured["password_hash"]):
+                    db.execute("UPDATE admin_users SET password_hash = ?, updated_at = ? WHERE id = ?", (_password_hash(password), now_text, int(configured["id"])))
                 db.execute("DELETE FROM rate_limits WHERE rate_key = ?", (rate_key,))
                 db.execute("DELETE FROM admin_sessions WHERE expires_at <= ?", (now_text,))
                 session_token, csrf_token, cookies = _new_session(db, int(configured["id"]), production)
-                return _json(200, {"authenticated": True, "email": configured["email"], "mustChangePassword": bool(configured["must_change_password"])}, cookies)
+                return _json(200, {"authenticated": True, "email": configured["email"], "mustChangePassword": bool(configured["must_change_password"]), "mfaEnabled": bool(configured["mfa_enabled"])}, cookies)
 
             session, session_token = _load_session(db, headers, production, now_text)
             if not session:
-                if action in {"logout", "password", "status", "inquiries", "export"}:
+                if action in {"logout", "password", "status", "inquiries", "export", "mfa-setup", "mfa-confirm", "mfa-disable", "revoke-sessions", "projects", "services", "settings"}:
                     return _json(401, {"error": "Your session expired. Sign in again."}, _cookie_headers("", "", production, clear=True))
                 return _json(404, {"error": "Admin endpoint not found."})
             if method == "POST" and not _check_csrf(db, session, headers):
                 return _json(403, {"error": "Refresh the page and try again."})
-            if session["must_change_password"] and action not in {"password", "logout", "session"}:
+            if action == "mfa-setup" and method == "POST":
+                if session["mfa_enabled"]:
+                    return _json(409, {"error": "Authenticator sign-in is already enabled."})
+                payload = _read_json(body)
+                account = db.execute("SELECT email FROM admin_users WHERE id = ?", (int(session["user_id"]),)).fetchone()
+                secret_text = base64.b32encode(secrets.token_bytes(20)).decode("ascii").rstrip("=")
+                encrypted = _encrypt_totp_secret(secret_text)
+                db.execute("UPDATE admin_users SET totp_secret_enc = ?, mfa_setup_expires = ?, updated_at = ? WHERE id = ?", (encrypted, iso(now + timedelta(minutes=10)), now_text, int(session["user_id"])))
+                label = quote("Blessson Studio:" + str(account["email"]))
+                issuer = quote("Blessson Studio")
+                return _json(200, {"secret": secret_text, "otpAuthUrl": f"otpauth://totp/{label}?secret={secret_text}&issuer={issuer}&algorithm=SHA1&digits=6&period=30"})
+            if action == "mfa-confirm" and method == "POST":
+                payload = _read_json(body)
+                account = db.execute("SELECT totp_secret_enc, mfa_setup_expires, mfa_enabled FROM admin_users WHERE id = ?", (int(session["user_id"]),)).fetchone()
+                if not account or account["mfa_enabled"] or not account["totp_secret_enc"] or not account["mfa_setup_expires"] or account["mfa_setup_expires"] <= now_text:
+                    return _json(409, {"error": "The setup code expired. Start setup again."})
+                if not _verify_mfa_code(db, int(session["user_id"]), account["totp_secret_enc"], payload.get("code"), now):
+                    return _json(400, {"error": "That code did not match. Check your authenticator and try again."})
+                recovery_codes = _new_recovery_codes()
+                db.execute("UPDATE admin_users SET mfa_enabled = TRUE, mfa_setup_expires = NULL, updated_at = ? WHERE id = ?", (now_text, int(session["user_id"])))
+                db.execute("DELETE FROM admin_recovery_codes WHERE user_id = ?", (int(session["user_id"]),))
+                for recovery_code in recovery_codes:
+                    digest = hashlib.sha256(_normalize_recovery_code(recovery_code).encode("ascii")).hexdigest()
+                    db.execute("INSERT INTO admin_recovery_codes (user_id, code_hash, created_at) VALUES (?, ?, ?)", (int(session["user_id"]), digest, now_text))
+                current_hash = hashlib.sha256(session_token.encode()).hexdigest()
+                db.execute("DELETE FROM admin_sessions WHERE user_id = ? AND token_hash <> ?", (int(session["user_id"]), current_hash))
+                return _json(200, {"ok": True, "recoveryCodes": recovery_codes})
+            if action == "mfa-disable" and method == "POST":
+                payload = _read_json(body)
+                account = db.execute("SELECT password_hash, totp_secret_enc, mfa_enabled FROM admin_users WHERE id = ?", (int(session["user_id"]),)).fetchone()
+                code = payload.get("code") or payload.get("recoveryCode")
+                if not account or not account["mfa_enabled"] or not _verify_password(str(payload.get("currentPassword", "")), account["password_hash"]) or not _verify_mfa_code(db, int(session["user_id"]), account["totp_secret_enc"], code, now):
+                    return _json(401, {"error": "Password or authenticator code was not accepted."})
+                db.execute("UPDATE admin_users SET mfa_enabled = FALSE, totp_secret_enc = NULL, mfa_setup_expires = NULL, updated_at = ? WHERE id = ?", (now_text, int(session["user_id"])))
+                db.execute("DELETE FROM admin_recovery_codes WHERE user_id = ?", (int(session["user_id"]),))
+                return _json(200, {"ok": True})
+            if action == "revoke-sessions" and method == "POST":
+                db.execute("DELETE FROM admin_sessions WHERE user_id = ?", (int(session["user_id"]),))
+                return _json(200, {"ok": True}, _cookie_headers("", "", production, clear=True))
+            if session["must_change_password"] and action not in {"password", "logout", "session", "mfa-setup", "mfa-confirm"}:
                 return _json(403, {"error": "Set a new password before opening the inbox."})
             if action == "logout" and method == "POST":
                 token_hash = hashlib.sha256(session_token.encode()).hexdigest()

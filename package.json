@@ -1,0 +1,13 @@
+{
+  "name": "blessson-audio-portfolio",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "@vercel/blob": "^2.8.0",
+    "esbuild": "^0.25.0"
+  }
+}
