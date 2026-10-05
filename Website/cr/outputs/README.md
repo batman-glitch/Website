@@ -1,24 +1,30 @@
 # Blessson — Audio Engineer Portfolio
 
-A responsive, static portfolio with an optional local enquiry inbox. The live Vercel site serves the portfolio and prepares an email draft if an online form endpoint is unavailable. It does not claim to store public enquiries.
+A responsive portfolio with a private enquiry inbox. The live site accepts project enquiries into a PostgreSQL database and keeps administrator access behind password authentication. The local development server uses SQLite and is bound to `127.0.0.1` only.
 
-## Run the local inbox
+## Local development
 
 From this folder, run:
 
     python3 server.py
 
-The local server listens only on `http://127.0.0.1:8787`.
+On first run, the server asks you to create an administrator email and password in the terminal. Use a passphrase at least 14 characters long. The password is stored only as a salted PBKDF2-SHA256 hash. The local database and session secret live in `data/`, with owner-only file permissions.
 
 - Portfolio: `http://127.0.0.1:8787/`
-- Private local inbox: `http://127.0.0.1:8787/admin`
+- Private inbox: `http://127.0.0.1:8787/admin`
 
-On first start, the server prints a one-time admin token and saves it in `data/.admin-token` with owner-only file permissions. Keep the token private. Enquiries submitted to the local server are stored in `data/portfolio.sqlite3`. The private dashboard includes inbox totals, inbox-wide search, status and service filters, date sorting, paginated enquiry cards, direct email replies, status updates, and a filtered CSV export. Search and pagination run against SQLite, so larger inboxes do not need to be loaded into the browser at once.
+The dashboard includes inbox totals, full-inbox search, status and service filters, date sorting, pagination, direct email replies, workflow updates, and filtered CSV export. Local enquiries are stored in `data/portfolio.sqlite3`.
 
-Opening `index.html` as a local file or visiting the static Vercel deployment does not connect to the local database. If no hosted enquiry endpoint is available, the form creates a ready-to-send email draft addressed to `blessonkondeti@gmail.com`.
+## Vercel deployment
 
-## Hosting and data
+The repository serves the public static files from `Website/cr/outputs` and runs the Python handlers in the root `api/` directory. The hosted admin is available at `/admin`; its requests use secure, HttpOnly session cookies, CSRF protection, server-side session records, login throttling, and a persistent PostgreSQL database.
 
-`server.py` and the SQLite inbox are for local development. Vercel deploys the public site as static files, so the SQLite database and private inbox do not run there. Before collecting enquiries into an online dashboard, connect a durable database and a trusted email provider, configure their private environment variables in Vercel, and add an authenticated online admin. Do not put database credentials or email API keys in the public frontend.
+Connect a PostgreSQL database to the Vercel project and make sure it provides `DATABASE_URL`. Add these production environment variables in Vercel:
 
-The showcase cards are marked as concept studies. Replace them with confirmed release credits and audio links when those are ready.
+- `ADMIN_EMAIL`: the administrator account email.
+- `ADMIN_INITIAL_PASSWORD_HASH`: the one-time password pre-hashed with salted PBKDF2-SHA256 (600,000 iterations). The first successful sign-in requires choosing a replacement; the plaintext password is never stored in Vercel or the database.
+- `ADMIN_SESSION_SECRET`: a randomly generated secret with at least 32 characters, used to sign rate-limit keys.
+
+Keep these values in Vercel's encrypted environment-variable store. Never place database credentials or passwords in the frontend, repository, or local logs. Do not use SQLite for hosted functions because serverless storage is not durable.
+
+The public showcase cards are concept studies. Replace them with confirmed release credits and audio links when those are ready.
