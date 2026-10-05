@@ -1,6 +1,7 @@
-const uploadBlob = async (...args) => { const { upload } = await import('@vercel/blob/client'); return upload(...args); };
+const putBlob = async (...args) => { const { put } = await import('@vercel/blob/client'); return put(...args); };
 
 const $ = (id) => document.getElementById(id);
+const activeUploads = new Map();
 const state = { csrf: '', email: '', mfaEnabled: false, projects: [], services: [], settings: {}, inquiriesPage: 1, inquiryPages: 1, noticeTimer: 0 };
 const adminApi = async (url, options = {}) => {
   const method = (options.method || 'GET').toUpperCase();
@@ -181,12 +182,14 @@ function renderProjects() {
   });
 }
 function clearProjectForm() {
+  if (activeUploads.size) return notice('Finish or cancel the current upload before clearing the project.', true);
   $('project-form').reset(); $('project-id').value = ''; $('project-order').value = '0'; $('cover-url').value = ''; $('audio-url').value = '';
   $('cover-file').value = ''; $('audio-file').value = ''; $('cover-preview').hidden = true; $('audio-preview').hidden = true;
   $('editor-kicker').textContent = 'NEW PORTFOLIO ITEM'; $('editor-title').textContent = 'Add a project'; $('project-published').checked = false; $('project-featured').checked = false;
   $('save-project').querySelector('span').textContent = 'Publish project'; setMessage($('project-message'), '');
 }
 function editProject(id) {
+  if (activeUploads.size) return notice('Finish or cancel the current upload before opening another project.', true);
   const project = state.projects.find((item) => String(item.id) === String(id)); if (!project) return;
   $('project-id').value = project.id; $('project-title').value = project.title; $('project-artist').value = project.artist || ''; $('project-service').value = project.service; $('project-genre').value = project.genre || ''; $('project-year').value = project.release_year || ''; $('project-order').value = project.display_order ?? 0; $('project-description').value = project.description || ''; $('audio-label').value = project.audio_label || ''; $('cover-url').value = project.cover_url || ''; $('audio-url').value = project.audio_url || ''; $('project-published').checked = project.is_published; $('project-featured').checked = project.is_featured;
   $('editor-kicker').textContent = project.is_published ? 'PUBLISHED PROJECT' : 'SAVED DRAFT'; $('editor-title').textContent = project.title; $('save-project').querySelector('span').textContent = project.is_published ? 'Save changes' : 'Publish project';
@@ -198,6 +201,7 @@ $('project-published').addEventListener('change', () => { $('save-project').quer
 $('project-form').addEventListener('submit', (event) => { event.preventDefault(); saveProject($('project-published').checked); });
 $('save-draft').addEventListener('click', () => saveProject(false));
 async function saveProject(published) {
+  if (activeUploads.size) return setMessage($('project-message'), 'Wait for your media upload to finish, or cancel it before saving.');
   const button = $('save-project'); button.disabled = true; setMessage($('project-message'), 'Saving your project…');
   const payload = { id: $('project-id').value || undefined, title: $('project-title').value.trim(), artist: $('project-artist').value.trim(), service: $('project-service').value, genre: $('project-genre').value.trim(), release_year: $('project-year').value || null, description: $('project-description').value.trim(), cover_url: $('cover-url').value, audio_url: $('audio-url').value, audio_label: $('audio-label').value.trim(), is_published: Boolean(published), is_featured: $('project-featured').checked, display_order: Number($('project-order').value || 0) };
   try {
@@ -216,30 +220,134 @@ async function deleteProject(id) {
   try { await adminApi(`/api/admin/projects/${id}`, { method: 'DELETE' }); clearProjectForm(); await loadProjects(); broadcastPortfolioUpdate(); notice('Project removed from the portfolio.'); }
   catch (error) { notice(error.message, true); }
 }
+async function requestUploadToken(pathname, kind, multipart, signal) {
+  const response = await fetch('/api/media-upload', {
+    method: 'POST',
+    credentials: 'same-origin',
+    cache: 'no-store',
+    signal,
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken() },
+    body: JSON.stringify({
+      type: 'blob.generate-client-token',
+      payload: { pathname, clientPayload: JSON.stringify({ kind }), multipart },
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Your secure session ended. Sign in again before uploading.');
+    throw new Error(data.error || 'Media storage could not prepare this upload. Please try again.');
+  }
+  if (typeof data.clientToken !== 'string' || !data.clientToken.startsWith('vercel_blob_client_')) {
+    throw new Error('Media storage returned an incomplete response. Please refresh and try again.');
+  }
+  return data.clientToken;
+}
 async function uploadAsset(file, kind) {
-  if (['localhost', '127.0.0.1', '::1'].includes(location.hostname)) throw new Error('Local studio uploads are not connected. Use the hosted admin at website-ivory-six-35.vercel.app/admin to upload public media.');
+  if (activeUploads.size) throw new Error('Finish or cancel the current upload before choosing another file.');
+  if (['localhost', '127.0.0.1', '::1'].includes(location.hostname)) throw new Error('Use the hosted studio to upload your media.');
   const limit = kind === 'cover' ? 12_000_000 : 250_000_000;
-  const ext = `.${file.name.split('.').pop().toLowerCase()}`;
+  const ext = '.' + file.name.split('.').pop().toLowerCase();
+  const types = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.wav': 'audio/wav', '.flac': 'audio/flac', '.ogg': 'audio/ogg' };
   const allowed = kind === 'cover' ? ['.jpg', '.jpeg', '.png', '.webp'] : ['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg'];
   if (!allowed.includes(ext)) throw new Error(kind === 'cover' ? 'Use a JPEG, PNG or WebP image.' : 'Use MP3, M4A, AAC, WAV, FLAC or OGG audio.');
+  if (!file.size) throw new Error('This file is empty. Choose a different file.');
   if (file.size > limit) throw new Error(kind === 'cover' ? 'This image is over 12 MB.' : 'This audio file is over 250 MB.');
-  const csrf = csrfToken(); if (!csrf) throw new Error('Refresh the admin page and sign in again before uploading.');
-  const safeName = file.name.normalize('NFKD').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(-90) || `${kind}${ext}`;
-  const name = `projects/${kind}/${crypto.randomUUID()}-${safeName}`;
-  const progress = $(`${kind}-progress`); progress.hidden = false; progress.querySelector('span').textContent = 'Preparing secure upload…';
+  if (!csrfToken()) throw new Error('Refresh the admin page and sign in again before uploading.');
+  const safeName = file.name.normalize('NFKD').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(-90) || kind + ext;
+  const name = 'projects/' + kind + '/' + crypto.randomUUID() + '-' + safeName;
+  const multipart = file.size > 5_000_000;
+  const progress = $(kind + '-progress');
+  const label = progress.querySelector('span');
+  const input = $(kind + '-file');
+  const controller = new AbortController();
+  let phaseTimer;
+  let totalTimer;
+  let loadedBytes = 0;
+  let stoppedReason = '';
+  let rejectStopped;
+  let finished = false;
+  const stopped = new Promise((_, reject) => { rejectStopped = reject; });
+  const stop = (reason) => {
+    if (finished || stoppedReason) return;
+    stoppedReason = reason;
+    controller.abort();
+    rejectStopped(new Error(reason));
+  };
+  const armPhaseTimeout = (ms, message) => {
+    window.clearTimeout(phaseTimer);
+    phaseTimer = window.setTimeout(() => stop(message), ms);
+  };
+  const policyListener = (event) => {
+    if (!event.effectiveDirective.startsWith('connect-src')) return;
+    try {
+      const url = new URL(event.blockedURI);
+      if ((url.hostname === 'vercel.com' && url.pathname.startsWith('/api/blob')) || url.hostname.endsWith('.vercel-storage.com')) {
+        stop('Your browser blocked the connection to media storage. Refresh this page and retry.');
+      }
+    } catch { /* Other blocked resources do not belong to this upload. */ }
+  };
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'text-button';
+  cancel.textContent = 'Cancel upload';
+  cancel.setAttribute('aria-label', 'Cancel ' + (kind === 'cover' ? 'cover image' : 'audio') + ' upload');
+  cancel.addEventListener('click', (event) => { event.preventDefault(); stop('Upload cancelled. Choose a file whenever you are ready.'); });
+  $(kind + '-dropzone').parentElement.querySelector('.upload-head').append(cancel);
+  progress.hidden = false;
+  progress.setAttribute('role', 'status');
+  progress.setAttribute('aria-live', 'polite');
+  label.textContent = 'Preparing secure upload…';
+  activeUploads.set(kind, controller);
+  input.disabled = true;
+  document.addEventListener('securitypolicyviolation', policyListener);
+  armPhaseTimeout(30_000, 'Preparing the upload took too long. Check your connection and retry.');
+  totalTimer = window.setTimeout(() => stop('The upload exceeded 15 minutes. Try a smaller preview or a faster connection.'), 15 * 60_000);
   try {
-    const blob = await uploadBlob(name, file, {
-      access: 'public',
-      handleUploadUrl: '/api/media-upload',
-      clientPayload: JSON.stringify({ kind }),
-      headers: { 'X-CSRF-Token': csrf },
-      multipart: true,
-      onUploadProgress(event) { progress.querySelector('span').textContent = `Uploading ${Math.round(event.percentage)}%`; },
-    });
-    $(`${kind}-url`).value = blob.url;
+    const blob = await Promise.race([
+      (async () => {
+        const token = await requestUploadToken(name, kind, multipart, controller.signal);
+        if (controller.signal.aborted) throw new Error(stoppedReason);
+        label.textContent = 'Uploading 0%';
+        armPhaseTimeout(90_000, 'The upload stopped making progress. Check your connection and retry.');
+        return putBlob(name, file, {
+          access: 'public',
+          token,
+          contentType: types[ext],
+          multipart,
+          abortSignal: controller.signal,
+          onUploadProgress(event) {
+            if (controller.signal.aborted || finished) return;
+            label.textContent = event.percentage >= 100 ? 'Finishing upload…' : 'Uploading ' + Math.round(event.percentage) + '%';
+            if (event.loaded > loadedBytes) {
+              loadedBytes = event.loaded;
+              armPhaseTimeout(90_000, 'The upload stopped making progress. Check your connection and retry.');
+            }
+          },
+        });
+      })(),
+      stopped,
+    ]);
+    if (controller.signal.aborted) throw new Error(stoppedReason);
+    $(kind + '-url').value = blob.url;
     showPreview(kind, blob.url, file.name);
     return blob.url;
-  } finally { progress.hidden = true; }
+  } catch (error) {
+    if (stoppedReason) throw new Error(stoppedReason);
+    if (navigator.onLine === false) throw new Error('You are offline. Reconnect and choose the file again.');
+    if (error instanceof TypeError || /network|fetch|load failed/i.test(error.message || '')) {
+      throw new Error('The connection to media storage failed. Check your connection and retry.');
+    }
+    throw error;
+  } finally {
+    finished = true;
+    window.clearTimeout(phaseTimer);
+    window.clearTimeout(totalTimer);
+    document.removeEventListener('securitypolicyviolation', policyListener);
+    cancel.remove();
+    activeUploads.delete(kind);
+    input.disabled = false;
+    progress.hidden = true;
+  }
 }
 function showPreview(kind, url, filename) {
   const box = $(`${kind}-preview`); box.replaceChildren();
@@ -250,10 +358,10 @@ function showPreview(kind, url, filename) {
 }
 for (const kind of ['cover', 'audio']) {
   const input = $(`${kind}-file`); const drop = $(`${kind}-dropzone`);
-  input.addEventListener('change', async () => { const file = input.files?.[0]; if (!file) return; setMessage($('project-message'), ''); try { await uploadAsset(file, kind); setMessage($('project-message'), `${kind === 'cover' ? 'Cover' : 'Audio'} uploaded. Save the project to attach it.`, true); } catch (error) { setMessage($('project-message'), error.message); input.value = ''; } });
+  input.addEventListener('change', async () => { const file = input.files?.[0]; if (!file) return; if (activeUploads.size) { input.value = ''; return notice('Finish or cancel the current upload before choosing another file.', true); } setMessage($('project-message'), ''); try { await uploadAsset(file, kind); setMessage($('project-message'), `${kind === 'cover' ? 'Cover' : 'Audio'} uploaded. Save the project to attach it.`, true); } catch (error) { setMessage($('project-message'), error.message); input.value = ''; } });
   drop.addEventListener('dragover', (event) => { event.preventDefault(); drop.classList.add('dragover'); });
   drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
-  drop.addEventListener('drop', (event) => { event.preventDefault(); drop.classList.remove('dragover'); const file = event.dataTransfer.files?.[0]; if (!file) return; const transfer = new DataTransfer(); transfer.items.add(file); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); });
+  drop.addEventListener('drop', (event) => { event.preventDefault(); drop.classList.remove('dragover'); if (activeUploads.size) return notice('Finish or cancel the current upload before choosing another file.', true); const file = event.dataTransfer.files?.[0]; if (!file) return; const transfer = new DataTransfer(); transfer.items.add(file); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true })); });
 }
 
 async function loadServices() {
