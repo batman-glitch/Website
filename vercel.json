@@ -1,37 +1,74 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
+  "buildCommand": "python3 -m pip install --target /tmp/blessson-build-deps -r requirements.txt && PYTHONPATH=/tmp/blessson-build-deps npm run build",
   "rewrites": [
     {
-      "source": "/dashboard/admin",
-      "destination": "/admin.html"
+      "source": "/login",
+      "destination": "/api/index?__path=/login"
     },
     {
-      "source": "/dashboard/admin/",
-      "destination": "/admin.html"
+      "source": "/register",
+      "destination": "/api/index?__path=/register"
     },
     {
-      "source": "/api/admin",
-      "destination": "/api/index?__route=admin"
+      "source": "/password/:path*",
+      "destination": "/api/index?__path=/password/:path*"
     },
     {
-      "source": "/api/admin/:adminPath*",
-      "destination": "/api/index?__route=admin/:adminPath*"
+      "source": "/client/:path*",
+      "destination": "/api/index?__path=/client/:path*"
     },
     {
-      "source": "/api/inquiries",
-      "destination": "/api/index?__route=inquiries"
+      "source": "/dashboard/:path*",
+      "destination": "/api/index?__path=/dashboard/:path*"
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": "/api/index?__path=/admin/:path*"
+    },
+    {
+      "source": "/admin",
+      "destination": "/api/index?__path=/admin"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/index?__path=/api/auth/:path*"
+    },
+    {
+      "source": "/api/client/:path*",
+      "destination": "/api/index?__path=/api/client/:path*"
+    },
+    {
+      "source": "/api/admin/:path*",
+      "destination": "/api/index?__path=/api/admin/:path*"
+    },
+    {
+      "source": "/api/files/:path*",
+      "destination": "/api/index?__path=/api/files/:path*"
     },
     {
       "source": "/api/portfolio",
-      "destination": "/api/index?__route=portfolio"
+      "destination": "/api/index?__path=/api/portfolio"
     },
     {
-      "source": "/api/portfolio/:portfolioPath*",
-      "destination": "/api/index?__route=portfolio/:portfolioPath*"
+      "source": "/api/portfolio/:path*",
+      "destination": "/api/index?__path=/api/portfolio/:path*"
+    },
+    {
+      "source": "/api/inquiries",
+      "destination": "/api/index?__path=/api/inquiries"
+    },
+    {
+      "source": "/api/inquiries/:path*",
+      "destination": "/api/index?__path=/api/inquiries/:path*"
     }
   ],
   "redirects": [
+    {
+      "source": "/admin.html",
+      "destination": "/dashboard/admin/",
+      "permanent": false
+    },
     {
       "source": "/server.py",
       "destination": "/",
@@ -84,34 +121,7 @@
       ]
     },
     {
-      "source": "/dashboard/admin",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, max-age=0"
-        }
-      ]
-    },
-    {
-      "source": "/admin.html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, max-age=0"
-        }
-      ]
-    },
-    {
-      "source": "/dashboard/admin/",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, max-age=0"
-        }
-      ]
-    },
-    {
-      "source": "/assets/admin-platform.bundle.js",
+      "source": "/assets/studio-blob.bundle.js",
       "headers": [
         {
           "key": "Cache-Control",
@@ -119,5 +129,11 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "{config,studio,templates,lib}/**",
+      "maxDuration": 60
+    }
+  }
 }

@@ -1,0 +1,11 @@
+.venv/
+.env*
+*.sqlite3
+__pycache__/
+node_modules/
+public/
+.vercel/
+*.pyc
+Website/cr/outputs/assets/admin-platform.bundle.js
+.pnpm-store/
+Website/cr/outputs/assets/studio-blob.bundle.js

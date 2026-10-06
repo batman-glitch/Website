@@ -98,7 +98,7 @@
     return article;
   }
   function updateProjects(projects) {
-    if (!Array.isArray(projects) || projects.length === 0) return;
+    if (!Array.isArray(projects)) return;
     grid.replaceChildren(...projects.map((project, index) => createProject(project, index, projects.length)));
     grid.classList.add('has-live-projects');
     const count = document.querySelector('.filter-count');
@@ -124,7 +124,7 @@
     });
   }
   function updateServices(services) {
-    if (!Array.isArray(services) || !services.length) return;
+    if (!Array.isArray(services)) return;
     const serviceGrid = document.querySelector('.service-grid');
     if (!serviceGrid) return;
     serviceGrid.replaceChildren(...services.map((service, index) => {
@@ -133,6 +133,7 @@
       article.append(textNode('span', 'service-number', `${String(index + 1).padStart(2, '0')} / ${normalize(service.name).toUpperCase()}`));
       article.append(textNode('h3', '', normalize(service.title) || normalize(service.name)));
       article.append(textNode('p', '', normalize(service.description)));
+      if (service.price) article.append(textNode('p', '', 'From ' + normalize(service.price))); 
       const link = textNode('a', 'service-link', `Ask about ${normalize(service.name).toLowerCase()} ↗`);
       link.href = '#contact';
       link.dataset.service = normalize(service.name);
@@ -152,6 +153,21 @@
     const tags = document.querySelector('.hero-services');
     if (tags) tags.replaceChildren(...services.slice(0, 4).map((service) => textNode('span', '', normalize(service.name).toUpperCase())));
   }
+  function updateTestimonials(items) {
+    let section = document.getElementById('client-testimonials');
+    if (!items.length) { if (section) section.remove(); return; }
+    if (!section) {
+      section = document.createElement('section'); section.id = 'client-testimonials'; section.className = 'wrap';
+      document.getElementById('contact').before(section);
+    }
+    section.replaceChildren(textNode('h2', '', 'In their words.'));
+    const list = document.createElement('div'); list.className = 'work-grid';
+    for (const item of items) {
+      const card = document.createElement('blockquote'); card.style.margin = '0'; card.style.padding = '24px'; card.style.border = '1px solid var(--line)';
+      card.append(textNode('p', '', item.quote), textNode('cite', 'work-detail', item.name)); list.append(card);
+    }
+    section.append(list);
+  }
   async function refresh() {
     if (location.protocol === 'file:') return;
     try {
@@ -164,6 +180,7 @@
       updateSettings(data.settings || {});
       updateServices(data.services || []);
       updateProjects(data.projects || []);
+      updateTestimonials(data.testimonials || []);
     } catch {}
   }
   updateContactEmail(defaults.contactEmail);

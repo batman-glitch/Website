@@ -1,61 +1,22 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
-import { neon } from '@neondatabase/serverless';
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 
-const sessionCookie = '__Host-blessson-session';
-const csrfCookie = '__Host-blessson-csrf';
 const imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const audioTypes = ['audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/ogg'];
 const imageExts = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const audioExts = new Set(['.mp3', '.m4a', '.aac', '.wav', '.flac', '.ogg']);
 
-function cookies(header: string | null) {
-  const values: Record<string, string> = {};
-  for (const part of (header || '').split(';')) {
-    const divider = part.indexOf('=');
-    if (divider < 0) continue;
-    values[part.slice(0, divider).trim()] = part.slice(divider + 1).trim();
-  }
-  return values;
-}
-
-function sha256(value: string) {
-  return createHash('sha256').update(value, 'utf8').digest('hex');
-}
-
-function equalHex(left: string, right: string) {
-  if (!/^[0-9a-f]{64}$/i.test(left) || !/^[0-9a-f]{64}$/i.test(right)) return false;
-  return timingSafeEqual(Buffer.from(left, 'hex'), Buffer.from(right, 'hex'));
-}
-
 async function requireAdmin(request: Request) {
   const origin = request.headers.get('origin');
   const host = request.headers.get('host');
   if (!origin || !host || new URL(origin).host.toLowerCase() !== host.toLowerCase()) {
-    throw new Error('This upload request could not be verified. Refresh the page and sign in again.');
+    throw new Error('This upload request could not be verified. Refresh and sign in again.');
   }
-  const cookie = cookies(request.headers.get('cookie'));
-  const rawSession = cookie[sessionCookie] || '';
-  const csrf = cookie[csrfCookie] || '';
-  const suppliedCsrf = request.headers.get('x-csrf-token') || '';
-  if (!rawSession || rawSession.length > 160 || !csrf || !suppliedCsrf || csrf !== suppliedCsrf) {
-    throw new Error('Your session expired. Sign in again.');
-  }
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) throw new Error('The secure database is not configured.');
-  const sql = neon(connectionString);
-  const rows = await sql`
-    SELECT s.csrf_hash
-    FROM admin_sessions s
-    JOIN admin_users u ON u.id = s.user_id
-    WHERE s.token_hash = ${sha256(rawSession)}
-      AND s.expires_at > ${new Date().toISOString()}
-      AND u.must_change_password = 0
-  `;
-  const row = rows[0];
-  if (!row || !equalHex(String(row.csrf_hash), sha256(csrf)) || !equalHex(String(row.csrf_hash), sha256(suppliedCsrf))) {
-    throw new Error('Your session expired. Sign in again.');
-  }
+  const result = await fetch(new URL('/api/auth/media-authorize/', origin), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Cookie': request.headers.get('cookie') || '', 'X-CSRFToken': request.headers.get('x-csrf-token') || '', 'Origin': origin },
+    body: '{}',
+  });
+  if (!result.ok) throw new Error('Your secure session could not authorize this upload. Sign in again.');
 }
 
 export async function POST(request: Request) {
