@@ -122,3 +122,8 @@ class AccessTests(TestCase):
         for resource in ['projects','enquiries','clients','services','portfolio','messages','files','testimonials','settings']:
             for method in ['post','patch','delete']:
                 self.assertEqual(self.post(c,'/api/admin/'+resource+'/',{},method).status_code,403,(resource,method))
+
+    def test_admin_can_delete_uuid_project_file(self):
+        result=self.post(self.signed_in(self.admin),'/api/admin/files/'+str(self.file.pk)+'/',{},'delete')
+        self.assertEqual(result.status_code,200)
+        self.assertFalse(ProjectFile.objects.filter(pk=self.file.pk).exists())

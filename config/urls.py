@@ -14,6 +14,7 @@ urlpatterns=[
     path('api/portfolio',views.portfolio_api),path('api/portfolio/',views.portfolio_api),
     path('api/portfolio/<str:part>',views.portfolio_api),path('api/portfolio/<str:part>/',views.portfolio_api),
     path('api/inquiries',views.public_enquiry),path('api/inquiries/',views.public_enquiry),
+    path('api/<str:area>/files/<uuid:pk>/',views.managed_api,{'resource':'files'}),
     path('api/<str:area>/<str:resource>/',views.managed_api),
     path('api/<str:area>/<str:resource>/<int:pk>/',views.managed_api),
 ]

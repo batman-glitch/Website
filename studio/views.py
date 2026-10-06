@@ -210,7 +210,7 @@ def _managed_api(request,area,resource,pk=None):
                         if k in data:setattr(e,k,data[k])
                     save_valid(e);activity(request,'Enquiry submitted: '+e.project_name,e.client);return response({'enquiry':enquiry_dict(e,admin)},201)
                 if not admin:return response({'error':'Enquiry changes require administrator access.'},403)
-                e=get_object_or_404(qs,pk=pk)
+                e=get_object_or_404(qs.select_for_update(),pk=pk)
                 if request.method in ['PATCH','POST']:
                     if 'client_id' in data:e.client=get_object_or_404(User,pk=data['client_id'],role='CLIENT')
                     for k in ['status','response','internal_notes']:
@@ -239,7 +239,7 @@ def _managed_api(request,area,resource,pk=None):
                 qs=Message.objects.select_related('client','sender').all()
                 if not admin:qs=qs.filter(client=user)
                 elif request.GET.get('client_id'):qs=qs.filter(client_id=request.GET['client_id'])
-                if request.method=='GET':return response({'messages':[message_dict(m) for m in qs.order_by('created_at')[:300]]})
+                if request.method=='GET':return response({'messages':[message_dict(m) for m in reversed(list(qs.order_by('-created_at')[:300]))]})
                 if request.method=='POST':
                     if throttle(request,'message',40):return response({'error':'Please wait before sending more messages.'},429)
                     client=get_object_or_404(User,pk=data.get('client_id'),role='CLIENT') if admin else user

@@ -15,7 +15,7 @@
 
 ## Verified locally
 
-23 automated checks cover role escalation, login redirects, dashboard rendering, ownership, API restrictions, encrypted uploads/downloads, CSRF, deactivation, enquiry conversion, public service edits, password changes, password-reset link single use and native Django admin account creation.
+24 automated checks cover role escalation, login redirects, dashboard rendering, ownership, API restrictions, encrypted uploads/downloads, CSRF, deactivation, enquiry conversion, public service edits, password changes, password-reset link single use and native Django admin account creation.
 
 Django system check, migration consistency check and frontend asset build pass.
 
