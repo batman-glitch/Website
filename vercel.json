@@ -3,11 +3,11 @@
   "buildCommand": "npm run build",
   "rewrites": [
     {
-      "source": "/admin",
+      "source": "/dashboard/admin",
       "destination": "/admin.html"
     },
     {
-      "source": "/admin/",
+      "source": "/dashboard/admin/",
       "destination": "/admin.html"
     },
     {
@@ -84,7 +84,7 @@
       ]
     },
     {
-      "source": "/admin",
+      "source": "/dashboard/admin",
       "headers": [
         {
           "key": "Cache-Control",
@@ -102,7 +102,7 @@
       ]
     },
     {
-      "source": "/admin/",
+      "source": "/dashboard/admin/",
       "headers": [
         {
           "key": "Cache-Control",
